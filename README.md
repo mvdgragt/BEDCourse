@@ -8,7 +8,7 @@ Choose at least one assignment per skill.
 ## Resources
 
 - Video Tutorial: (add link here)
-- Sample Code: 
+- Sample Code: https://github.com/mvdgragt/BEDCourse/blob/week3/typescript/classCode.ts
 - Useful Websites:
 - https://nodejs.org/learn/typescript/introduction
 - https://www.w3schools.com/typescript/index.php
