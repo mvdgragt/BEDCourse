@@ -1,112 +1,59 @@
-type PasswordFieldType = number | string;
+type displayDataFunction = (data: string) => void;
 
-const password = (code: PasswordFieldType) => {
-  console.log("password: " + code);
+const deliverPackage = (displayData: any) => {
+  console.log("waiting for package...");
+  setTimeout(() => {
+    const data = "Delivering package after 2 seconds";
+    displayData(data);
+  }, 2000);
 };
 
-password("123");
-
-type Direction = "left" | "right";
-const move = (dir: Direction) => {
-  console.log("moving: " + dir);
+const displayData = (data: string) => {
+  console.log(data);
 };
 
-move("left");
+deliverPackage(displayData);
 
-type Payment = "cash" | "card";
+type orderStatusFunction = (message: string) => void;
 
-const pay = (method: Payment) => {
-  console.log("Payment method: " + method);
-};
-pay("card");
-
-interface Person {
-  firstName: string;
-  age: number;
-}
-
-interface Customer {
-  customerNumber: number;
-  email: string;
-}
-
-type Client = Person & Customer;
-
-const clientData = (client: Client) => {
-  console.log(`Name: ${client.firstName} email: ${client.email}`);
-};
-clientData({
-  firstName: "Michiel",
-  age: 47,
-  customerNumber: 1,
-  email: "michiel.vandergragt@sundsgarden.se",
-});
-
-//Enums
-
-enum LoginError {
-  Unauthorized = "unauthorized",
-  MissingCredentials = "missingcredentials",
-  InternalError = "internalerror",
-}
-
-const printErrorMessage = (error: LoginError) => {
-  if (error === LoginError.Unauthorized) {
-    console.log("You are not authorized");
-  } else if (error === LoginError.MissingCredentials) {
-    console.log("You are missing some credentials");
-  }
+const orderPizza = (orderStatus: orderStatusFunction) => {
+  console.log("Ordering pizza...");
+  setTimeout(() => {
+    const message = "Your pizza is ready";
+    orderStatus(message);
+  }, 3000);
 };
 
-// npx tsx classCode.ts
-
-printErrorMessage(LoginError.Unauthorized);
-
-enum TrafficLight {
-  Red,
-  Yellow,
-  Green,
-}
-
-const LightAction = (light: TrafficLight) => {
-  if (light === TrafficLight.Red) {
-    console.log("Stop!");
-  } else if (light === TrafficLight.Yellow) {
-    console.log("Get ready....");
-  } else if (light === TrafficLight.Green) {
-    console.log("Go!");
-  }
-};
-LightAction(TrafficLight.Red);
-
-enum Day {
-  Monday,
-  Tuesday,
-  Wednesday,
-  Thursday,
-  Friday,
-  Saturday,
-  Sunday,
-}
-
-const planDay = (day: Day) => {
-  if (day === Day.Saturday || day === Day.Sunday) {
-    console.log("It's weekend!");
-  } else {
-    console.log("It's a work day.");
-  }
+const orderStatus = (message: string): void => {
+  console.log(message);
 };
 
-planDay(Day.Saturday);
+orderPizza(orderStatus);
 
-const convertToArray = <T>(input1: T, input2: T): T[] => {
-  return [input1, input2];
+type printResultFunction = (result: number) => void;
+
+const calculate = (a: number, b: number, printResult: printResultFunction) => {
+  const result = a + b;
+  printResult(result);
 };
 
-console.log(convertToArray(10, 20));
+const printResult = (result: number) => {
+  console.log("The result is: ", result);
+};
+calculate(45, 23, printResult);
 
-const getIndex = <T>(array: T[], value: T): number => {
-  return array.findIndex((item) => item === value);
+type showFileFunction = (fileContent: string) => void;
+
+const downloadFile = (url: string, showFile: showFileFunction) => {
+  console.log("Starting download from:", url);
+  setTimeout(() => {
+    const fileContent = `File data from ${url}`;
+    showFile(fileContent);
+  }, 4000);
 };
 
-console.log(getIndex([10, 20, 40], 20));
+const showFile = (fileContent: string) => {
+  console.log("Downloaded content:", fileContent);
+};
+
+downloadFile("http://example.com/file.txt", showFile);

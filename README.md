@@ -1,121 +1,93 @@
-# TypeScript Homework
+# Callbacks Homework
 
-### Practice Based on Class Code
-
-Complete each task in a `.ts` file (create a repo and branch it to: "week3/typescript").
-Choose at least one assignment per skill.
+Complete each task in a `.ts` file (create a repo and branch it to: "week3/callbacks").
+Assignments 1–5 are foundational, 6–10 are more challenging and optional.
 
 ## Resources
 
-- Video Tutorial: (add link here)
-- Sample Code: https://github.com/mvdgragt/BEDCourse/blob/week3/typescript/classCode.ts
+- Video Tutorial: https://youtu.be/cs3LG-UzZk8
+- Sample Code:
 - Useful Websites:
-- https://nodejs.org/learn/typescript/introduction
-- https://www.w3schools.com/typescript/index.php
-- https://typescript-exercises.github.io/
+  - https://nodejs.org/learn/typescript/introduction
+  - https://www.w3schools.com/typescript/index.php
+  - https://typescript-exercises.github.io/
+  - https://www.codewars.com/
+  - https://exercism.org/
 
 ---
 
-## Skill 1: Union Types (`|` means OR)
+## Ground rules (applies to every assignment)
 
-### ID Card
+Follow the same pattern used in class for every task below:
 
-Create a type called `IDType` that can be either a `number` OR a `string`. Write an arrow function called `showID` that takes an `IDType` and returns a string like:
-`"Your ID is: 12345"` or `"Your ID is: AB123"`
+1. **Define a type alias for the callback signature** before you use it, e.g.:
 
-Call the function once with a number and once with a string. Log both results.
+   ```typescript
+   type showFileFunction = (fileContent: string) => void;
+   ```
 
-### Fruit Basket
+2. **Write the main function as an arrow function** (`const myFunc = (...) => { ... }`), typed to accept the callback type you defined — never type a callback as `any`.
+3. **Simulate any delay or async behavior with `setTimeout`.**
+4. **Actually call the callback** inside the function once the result is ready. A function that computes a value but never passes it to the callback does not satisfy the assignment.
+5. Write the callback itself as a separate named arrow function, then pass it in by reference (don't inline it), e.g.:
 
-Create a type `Fruit` that can only be `"apple"`, `"banana"`, or `"orange"`. Write an arrow function called `eatFruit` that takes a `Fruit` and returns a string like:
-`"You ate an apple."`
+   ```typescript
+   const showFile = (fileContent: string) => {
+     console.log(fileContent);
+   };
 
-Call the function with `"apple"` and `"orange"`. Log both results.
+   downloadFile(url, showFile);
+   ```
 
-### Challenge (optional) Pass or Fail
-
-Create a type `Result` that can be either `true` OR `false`. Write an arrow function called `printResult` that takes a `Result` and returns `"Pass"` if `true`, and `"Fail"` if `false`.
-
-Call the function with both values and log the results.
-
----
-
-## Skill 2: Interfaces & Type Aliases (`&` means AND)
-
-### Book Interface
-
-Define an interface called `Book` with properties `title: string` and `pages: number`. Create one `Book` object and write an arrow function called `describeBook` that returns a string like:
-`"The book Dune has 412 pages."`
-
-Log the result.
-
-### Combining Interfaces
-
-Create two interfaces:
-
-- `Teacher` with `name: string` and `subject: string`
-- `Employee` with `id: number` and `email: string`
-
-Create a type alias `SchoolTeacher` that combines `Teacher` AND `Employee` using `&`. Create one `SchoolTeacher` object and write an arrow function called `printTeacherInfo` that logs all four properties in a readable sentence.
-
-### Challenge (optional) Favorite Car
-
-Define an interface `Car` with `brand: string` and `year: number`. Write an arrow function called `printCar` that takes a `Car` and returns a string like:
-`"Brand: Toyota, Year: 2022"`
-
-Call the function with your favorite car and log the result.
+Assignments that don't involve a delay (e.g. #4, #9) can skip `setTimeout`, but still need the type alias, the arrow function, and an actual call to the callback.
 
 ---
 
-## Skill 3: Enums (fixed list of options)
+## Foundational Assignments
 
-### Color Picker
+### 1. Hello Callback
 
-Create an enum `Color` with values `Red`, `Green`, `Blue`. Write an arrow function called `showColor` that takes a `Color` and returns a string like:
-`"You chose Red"`
+Define a callback type `helloFunction = (message: string) => void`. Write an arrow function that takes a callback of this type and calls it with `'Hello from callback!'`.
 
-Call the function with each of the three colors and log the results.
+### 2. Delayed Greeting
 
-### Pizza Order
+Define a callback type for a greeting message. Make an arrow function called `sayHelloLater` that uses `setTimeout` to wait 2 seconds, then calls the callback with `'Hi, I am late!'`.
 
-Create an enum `PizzaSize` with values `Small`, `Medium`, `Large`. Write an arrow function called `orderPizza` that takes a `PizzaSize` and returns a string like:
-`"You ordered a Medium pizza."`
+### 3. Math Callback
 
-Call the function with all three sizes and log the results.
+Define a callback type that accepts a `number`. Create an arrow function that takes two numbers and a callback of that type. The function should add the numbers and pass the result to the callback (don't forget to actually call it!).
 
-### Challenge (optional) Role-Based Access
+### 4. Uppercase Callback
 
-Create an enum `Role` with values `Admin`, `User`, `Guest`. Write an arrow function called `printRole` that takes a `Role` and, using a `switch` statement, returns:
+Define a callback type that accepts a `string`. Write an arrow function that takes a string and a callback of that type, converts the string to uppercase, and passes the result to the callback.
 
-- `Admin` → `"You have full access"`
-- `User` → `"You have limited access"`
-- `Guest` → `"You have guest access"`
+### 5. Pizza Order
 
-Call the function with all three roles and log the results.
+Define an `orderStatusFunction` callback type. Simulate ordering pizza: the arrow function should use `setTimeout` to wait 3 seconds and then call the callback with `'Your pizza is ready!'`.
 
 ---
 
-## Skill 4: Generics (`<T>` means reusable placeholder)
+## More Challenging Assignments
 
-### Wrap It Up
+### 6. Multiple Messages
 
-Write a generic arrow function `wrapInArray<T>` that takes one item and returns it inside an array.
-Example: `wrapInArray("cat")` → `["cat"]`
+Define a callback type for a single string message. Make an arrow function that takes a callback of this type and calls it three times with three different messages.
 
-Call it with a string and with a number. Log both results.
+### 7. Download Simulation
 
-### First in Line
+Define a `downloadFunction` callback type. Create an arrow function that takes a URL string and a callback of that type, waits 2 seconds via `setTimeout`, then calls the callback with `'Downloaded data from <URL>'`.
 
-Write a generic arrow function `firstItem<T>` that takes an array and returns its first item.
+### 8. Success and Error Callback
 
-Test it with `[1, 2, 3]` and `["a", "b", "c"]`. Log both results.
+Define two callback types, one for success, one for error. Make an arrow function that takes both as parameters and uses `Math.random()` to decide which one to call.
 
-### Challenge (optional) Swap Places
+### 9. Math with Different Operations
 
-Write a generic arrow function `swap<T>` that takes two items and returns them in reverse order inside an array.
-Example: `swap("hello", "world")` → `["world", "hello"]`
+Define a callback type that accepts a `number` result. Write one arrow function that can do addition, subtraction, multiplication, and division. It should take two numbers, an operation string, and a callback of that type, then call the callback with the computed result.
 
-Call it with two strings and two numbers. Log both results.
+### 10. Chained Callbacks
+
+Define a callback type for a "step done" signal. Make three arrow functions that each use `setTimeout` to wait 1 second and then call the next callback, printing `'Step 1 done'`, `'Step 2 done'`, `'Step 3 done'` in order.
 
 ---
 
@@ -123,4 +95,4 @@ Call it with two strings and two numbers. Log both results.
 
 Submit the link to your github repo and the correct branch.
 
-- example: https://github.com/mvdgragt/BEDCourse/tree/week3/typescript
+- example: https://github.com/mvdgragt/BEDCourse/tree/week3/callbacks
