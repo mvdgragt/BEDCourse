@@ -6,7 +6,7 @@ Assignments 1–5 are foundational, 6–10 are more challenging and optional.
 ## Resources
 
 - Video Tutorial: https://youtu.be/cs3LG-UzZk8
-- Sample Code:
+- Sample Code: https://github.com/mvdgragt/BEDCourse/blob/week3/callbacks/classCode.ts
 - Useful Websites:
   - https://nodejs.org/learn/typescript/introduction
   - https://www.w3schools.com/typescript/index.php
