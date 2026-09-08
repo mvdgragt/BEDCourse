@@ -20,6 +20,7 @@ myPromise
     console.log(error);
   });
 
+/*
 type AdviceSlipType = {
   slip: {
     id: number;
@@ -49,3 +50,4 @@ const fetchAdviceById = (id: number): void => {
 };
 
 fetchAdviceById(11);
+*/
