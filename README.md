@@ -8,7 +8,7 @@ Your goal across all 9 tasks is the same: **take a promise-based function (using
 
 ## Resources
 
-- Video Tutorial: https://www.youtube.com/watch?v=YlvDxfwsNdU
+- Video Tutorial: https://www.youtube.com/watch?v=aXrzKfyLUdE
 - Useful Websites:
   - https://www.typescriptlang.org/docs/handbook/2/functions.html
   - https://javascript.info/promise-basics
