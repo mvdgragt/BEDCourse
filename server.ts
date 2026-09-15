@@ -1,93 +1,55 @@
 import express, { Request, Response } from "express";
 
 const app = express();
-
 const PORT = 3000;
 
-type Menu = {
-  restaurant: string;
-  categories: {
-    appetizers: string[];
-    mains: string[];
-    desserts: string[];
-    drinks: string[];
-  };
-  lastUpdated: string;
-};
+app.use(express.json());
 
-type About = {
+type Book = {
+  id: number;
   title: string;
-  description: string;
-  funFacts?: string[];
-  funFact?: string;
-  lastUpdated?: string;
+  author: string;
 };
 
-// app.get("/", (req: Request, res: Response): void => {
-//   res.send("Welcome to our restaurant");
-// });
+type BookParams = {
+  id: string;
+};
 
-// app.get("/menu", (req: Request, res: Response): void => {
-//   const menu: Menu = {
-//     restaurant: "My First Restaurant",
-//     categories: {
-//       appetizers: ["Chicken Wings", "Garlic Bread", "Mozzarella Sticks"],
-//       mains: ["Burger", "Pizza", "Salad"],
-//       desserts: ["Ice Cream", "Chocolate Cake", "Tiramisu"],
-//       drinks: ["Coffee", "Tea", "Soda", "Water"],
-//     },
-//     lastUpdated: new Date().toISOString().split("T")[0],
-//   };
-//   res.json(menu);
-// });
+let books: Book[] = [
+  { id: 1, title: "1984", author: "George Orwell" },
+  { id: 2, title: "The Hobbit", author: "J.R.R. Tolkien" },
+];
 
-// --- Skill 1 ---
-// Success: 200 OK
-// If route didn't exist: 404 Not Found ("Cannot GET /")
-app.get("/", (req: Request, res: Response): void => {
-  res.send("Welcome to our bikeshop");
+app.get("/books", (req: Request, res: Response): void => {
+  res.json(books);
 });
 
-// --- Skill 2 ---
-// Success: 200 OK
-// If route didn't exist: 404 Not Found ("Cannot GET /about")
-app.get("/about", (req: Request, res: Response): void => {
-  const about: About = {
-    title: "Bicycle Shop",
-    description: "In our bicycle shop we sell and repare bikes",
-    funFacts: ["We love long distance bicyles", "We love quality!"],
-
-    lastUpdated: new Date().toISOString().split("T")[0],
+app.post("/books", (req: Request, res: Response) => {
+  const newBook: Book = {
+    id: books.length + 1,
+    title: req.body.title,
+    author: req.body.author,
   };
-  res.json(about);
+  books.push(newBook);
+  res.json({ message: "Books added successfully", book: newBook });
 });
 
-// --- Skill 4, 6 and 7 ---
-// Success: 200 OK
-// If route didn't exist: 404 Not Found ("Cannot GET /history")
-app.get("/history", (req: Request, res: Response): void => {
-  const about: About = {
-    title: "Bicycle Shop",
-    description:
-      "In our bicycle shop we sell and repare bikes. Reparing is the closest we can get to being a hospital. Selling is the closest we can get to help you purchase your dream bike.",
-    funFact:
-      "Did you know that we have over 20 years of experience reparing bikes, and that when you get your bike back from us 95% of our customers say their bicycle has never been more fun to bike with?",
-  };
-  res.status(200).json(about);
+app.put("/books/:id", (req: Request<BookParams>, res: Response): void => {
+  const bookId: number = parseInt(req.params.id);
+  const book = books.find((book) => book.id === bookId);
+  if (!book) {
+    res.status(404).json({ message: "book not found" });
+    return;
+  }
+  book.title = req.body.title || book.title;
+  book.author = req.body.author || book.author;
+  res.json({ message: "Book updated successfully", book });
 });
 
-// --- Skill 5 ---
-// Success: 200 OK
-// If route didn't exist: 404 Not Found ("Cannot GET /comparing")
-app.get("/comparing", (req: Request, res: Response): void => {
-  // We use res.send() here instead of res.json() because the response is a
-  // simple text message and not structured data.
-  res.send("This is a plain text response, so res.send() is all we need.");
-});
-
-// --- skill 8 ---
-app.get("/maintenance", (req: Request, res: Response): void => {
-  res.status(503).send("We're down for maintenance, check back soon!");
+app.delete("/books/:id", (req: Request<BookParams>, res: Response): void => {
+  const bookId: number = parseInt(req.params.id);
+  books = books.filter((book) => book.id !== bookId);
+  res.json({ message: "Book deleted successfully" });
 });
 
 app.listen(PORT, () => {

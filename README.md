@@ -1,97 +1,111 @@
-# HTTP & Express Homework
+# HTTP & Express Homework - Week 5: CRUD Edition
 
 ### Practice Based on Class Code
 
-In class we built a restaurant server with two `GET` routes: one that sends plain text (`res.send`) and one that sends a nested JSON object (`res.json`). For this homework, use that same pattern as your blueprint, but **rebuild it around a topic you're personally interested in** instead of a restaurant.
+In the last homework you built static `GET`-only routes around your own topic. In class this week we moved on to full CRUD (`GET`, `POST`, `PUT`, `DELETE`) using an in-memory `books` array as our example.
 
-Pick something that excites you. Here are a few ideas:
+For this homework, use that same pattern as your blueprint, but **rebuild it around the 2026 Swedish general election (riksdagsval)** instead of books. Create a repo and branch it to: `week6/http-express-crud`.
 
-- Your favorite video game (categories = genre, characters, levels)
-- A sports league or team (categories = players, positions, stats)
-- Movies or a TV show (categories = characters, seasons, genres)
-- Music (categories = artists, albums, genres)
-- Books (categories = genres, authors, series)
-  Whatever you pick, structure your data the same way `menu` was structured in class: a top-level object with a name/title, a nested `categories` object where each key holds an array of items, and a `lastUpdated` field. Create a repo and branch it to: `week5/http-express`.
+Your data should be an in-memory array of objects, structured like this:
 
-Your goal across all 9 tasks is the same: **take exactly what we covered in class: `app.get`, `res.send`, `res.json`, and nested objects and use it to build a couple more routes for your own topic.** Every task below uses `GET` only, and every route is static (no dynamic parameters), just like the two routes we wrote together. The tasks get progressively harder: Tasks 1–3 are easy, 4–6 are medium, and 7–9 are challenging and optional.
+```ts
+type Party = {
+  id: number;
+  name: string;
+  leader: string;
+  seats: number;
+};
+
+type PartyParams = {
+  id: string;
+};
+
+let parties: Party[] = [
+  { id: 1, name: "Socialdemokraterna", leader: "Example Name", seats: 107 },
+  { id: 2, name: "Moderaterna", leader: "Example Name", seats: 68 },
+];
+```
+
+(Feel free to look up real party names, leaders, and seat counts from the most recent Riksdag election for realism — just don't stress about getting every number perfectly up to date.)
+
+Every task below builds on the `app.get`, `app.post`, `app.put`, `app.delete`, `res.json`, `res.send`, and `res.status` patterns we used in class with the `/books` routes. Tasks 1–3 are easy, 4–6 are medium, and 7–9 are challenging and optional.
 
 ## Resources
 
-- Class tutorial and code:
-- https://youtu.be/6OmfZxCh388?si=ZM7JPLTAS5dPejPx
-- https://github.com/mvdgragt/BEDCourse/tree/week5/http-express
-
-- Useful Websites:
-  - https://expressjs.com/en/starter/basic-routing.html
-  - https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
-  - https://docs.insomnia.rest/insomnia/send-your-first-request
-  - https://www.npmjs.com/package/nodemon
-  - https://www.npmjs.com/package/express
+- Class tutorial and code (CRUD / books example)
+- https://expressjs.com/en/starter/basic-routing.html
+- https://expressjs.com/en/4x/api.html#req.body
+- https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+- https://docs.insomnia.rest/insomnia/send-your-first-request
+- https://www.npmjs.com/package/express
 
 ### Key Concepts
 
 ```ts
 /*
-app.get(path, handler)   // read/retrieve data — safe, repeatable, never changes anything
-res.send()               // send back a plain text/HTML response
-res.json()               // send back a JSON response
-res.status(code)         // explicitly set the HTTP status code before responding
- 
-Status codes we talked about:
+app.get(path, handler)     // read/retrieve data
+app.post(path, handler)    // create new data
+app.put(path, handler)     // update existing data
+app.delete(path, handler)  // remove data
+
+req.body     // data sent in the request body (needs app.use(express.json()))
+req.params   // dynamic values in the URL, e.g. /parties/:id
+
+Status codes to think about this time:
 200 OK           — success, here's your data
 201 Created      — something new was successfully created
-400 Bad Request  — the request was malformed
-401 Unauthorized — you need to log in / show credentials
-404 Not Found    — that resource doesn't exist
+400 Bad Request  — the request body was missing required fields
+404 Not Found    — that resource doesn't exist (e.g. no party with that id)
 500 Internal Server Error — something broke on the server
-503 Service Unavailable   — the server is too busy right now
 */
 ```
 
 ## Easy (Tasks 1–3)
 
-### Task 1: Homepage Route
+### Task 1: List All Parties
 
-Just like `app.get("/")` sent back `"Welcome to our restaurant"`, add your own homepage route that sends a plain text welcome message related to your topic, using `res.send`.
+Build a `GET /parties` route that returns the full `parties` array with `res.json`.
 
-### Task 2: Main Data Route
+### Task 2: Add a New Party
 
-Just like `app.get("/menu")` returned a JSON object with a title, nested `categories`, and a `lastUpdated` field, build your own equivalent route (e.g. `/roster`, `/tracklist`, `/collection`) that returns your topic's data using `res.json`, with at least 3 categories and a `lastUpdated` field generated the same way we did in class (`new Date().toISOString().split("T")[0]`).
+Build a `POST /parties` route that reads `name`, `leader`, and `seats` from `req.body`, creates a new `Party` object with a new `id`, pushes it into the array, and responds with a confirmation message and the new party.
 
 ### Task 3: Testing With Insomnia
 
-Test both of your routes in Insomnia. Confirm each one returns a `200` status code, and check that your JSON route's response body looks the way you expect.
+Test both routes in Insomnia. For `GET /parties`, confirm you get `200` and the array looks right. For `POST /parties`, send a JSON body with a new party and confirm the response includes it.
 
 ## Medium (Tasks 4–6)
 
-### Task 4: A Second JSON Route
+### Task 4: Update a Party's Info
 
-Add another `GET` route (like `/about`) that returns a JSON object with different information about your topic, not menu-style categories this time, just a few descriptive fields (e.g. `title`, `description`, `founded`, `funFact`).
+Build a `PUT /parties/:id` route. Find the party by `id` (parsed from `req.params`), update whichever fields (`name`, `leader`, `seats`) were sent in `req.body`, and return the updated party. If no party matches that `id`, respond with `404` and a helpful message.
 
-### Task 5: Comparing Response Types
+### Task 5: Remove a Party
 
-Add one more `GET` route that deliberately uses `res.send` with a plain string, and explain in a short code comment why you'd choose `res.send` over `res.json` for that particular route.
+Build a `DELETE /parties/:id` route that removes the matching party from the array and responds with a confirmation message.
 
-### Task 6: Matching Status Codes to Scenarios
+### Task 6: Handling Bad Input
 
-Without changing your code yet, write a short comment above each of your routes describing what status code Insomnia _should_ show when the request succeeds, and what status code you'd expect if the route didn't exist at all (try requesting a route you never built and see what Insomnia shows you).
+Update your `POST /parties` route so that if `name` or `leader` is missing from `req.body`, it responds with `res.status(400).json(...)` and an error message instead of creating a broken party. Test this in Insomnia by sending an incomplete body on purpose.
 
 ## Challenging => Optional (Tasks 7–9)
 
-### Task 7: Setting Status Codes Explicitly
+### Task 7: Explicit Status on Create
 
-Pick one of your routes and rewrite it to explicitly set its status using `res.status(200).json(...)` instead of relying on the default. Confirm in Insomnia that the response still shows `200`.
+Make sure your `POST /parties` route explicitly responds with `res.status(201).json(...)` on success, since `201` (not `200`) is the correct code for "something was created." Confirm this in Insomnia.
 
-### Task 8: A Deliberate Error Response
+### Task 8: A Seats Total Route
 
-Add a small "maintenance mode" route (e.g. `/maintenance`) that always responds with `res.status(503).send("We're down for maintenance, check back soon!")`, just to practice sending a non-200 status code on purpose. Test it in Insomnia and confirm you see `503`.
+Add a `GET /parties/seats-total` route that adds up the `seats` field across every party in the array and returns it as JSON, e.g. `{ totalSeats: 349 }`.
+
+> Note: route order matters here. This route needs to be declared _before_ any `GET /parties/:id` route you might add, or Express will try to match `"seats-total"` as an `:id`.
 
 ### Task 9: Document Your API
 
-Write a short `README.md` listing every route you built (method, path, what it returns, and the status code you saw in Insomnia). Paste a screenshot from Insomnia for each route as proof.
+Write a short `README.md` listing every route you built (method, path, expected request body if any, what it returns, and the status codes you tested in Insomnia, both the success case and at least one error case like `404` or `400`). Paste an Insomnia screenshot for each route as proof.
 
 ## When You Finish
 
-Push your updated project to the same GitHub repository you used but to this branch: week5/http-express
+Push your updated project to the same GitHub repository, on the branch: `week5/http-express-crud`
 
-Good luck, and remember: even simple static routes are real, working APIs, you're already doing the same thing large-scale servers do, just on a smaller scale!
+Good luck — you've now built a full CRUD API, which is the same basic shape behind most real-world backends you'll ever work with!
