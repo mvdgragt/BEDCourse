@@ -26,13 +26,14 @@ let parties: Party[] = [
 ];
 ```
 
-(Feel free to look up real party names, leaders, and seat counts from the most recent Riksdag election for realism — just don't stress about getting every number perfectly up to date.)
+(Feel free to look up real party names, leaders, and seat counts from the most recent Riksdag election for realism. Just don't stress about getting every number perfectly up to date.)
 
 Every task below builds on the `app.get`, `app.post`, `app.put`, `app.delete`, `res.json`, `res.send`, and `res.status` patterns we used in class with the `/books` routes. Tasks 1–3 are easy, 4–6 are medium, and 7–9 are challenging and optional.
 
 ## Resources
 
-- Class tutorial and code (CRUD / books example)
+- class tutorial: https://youtu.be/Z85L2i0atlk
+- example code from the video: https://github.com/mvdgragt/BEDCourse/blob/week5/http-express-crud/server.ts
 - https://expressjs.com/en/starter/basic-routing.html
 - https://expressjs.com/en/4x/api.html#req.body
 - https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
