@@ -21,7 +21,8 @@
   },
   "homepage": "https://github.com/mvdgragt/BEDCourse#readme",
   "dependencies": {
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",

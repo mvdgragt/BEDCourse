@@ -1,112 +1,103 @@
-# HTTP & Express Homework - Week 5: CRUD Edition
+# Fetch Random Person API Homework (with Challenge)
 
 ### Practice Based on Class Code
 
-In the last homework you built static `GET`-only routes around your own topic. In class this week we moved on to full CRUD (`GET`, `POST`, `PUT`, `DELETE`) using an in-memory `books` array as our example.
+In class we learned how to use **Zod** to validate data, connect it with **Express**, and pull data from a real external API (the Random User Generator). For this homework, you'll build on that same pattern; instead you'll fetch **different fields** from the API and build out a few new routes of your own.
 
-For this homework, use that same pattern as your blueprint, but **rebuild it around the 2026 Swedish general election (riksdagsval)** instead of books. Create a repo and branch it to: `week6/http-express-crud`.
+Your goal across all phases is the same: take what we covered in class (`fetch`, Zod schemas, `safeParse`, and status codes) and use them to build a small, well-validated API around the Random User Generator.
 
-Your data should be an in-memory array of objects, structured like this:
+## Goal
 
-```ts
-type Party = {
-  id: number;
-  name: string;
-  leader: string;
-  seats: number;
-};
+Practice fetching data from an external API (the [RandomUser API](https://randomuser.me/)) using Express and TypeScript, and validating it with Zod. You will fetch different data from the API than we did in the example, and create new routes from scratch.
 
-type PartyParams = {
-  id: string;
-};
+**Video:** https://youtu.be/GpuojVxrMdw
 
-let parties: Party[] = [
-  { id: 1, name: "Socialdemokraterna", leader: "Example Name", seats: 107 },
-  { id: 2, name: "Moderaterna", leader: "Example Name", seats: 68 },
-];
+## Project Outline
+
+```
+server/
+  └── server.ts   : main server file
 ```
 
-(Feel free to look up real party names, leaders, and seat counts from the most recent Riksdag election for realism. Just don't stress about getting every number perfectly up to date.)
+**Routes to implement:**
 
-Every task below builds on the `app.get`, `app.post`, `app.put`, `app.delete`, `res.json`, `res.send`, and `res.status` patterns we used in class with the `/books` routes. Tasks 1–3 are easy, 4–6 are medium, and 7–9 are challenging and optional.
+- `GET /random-person`: fetch a random person and return their full name and country
+- `POST /users`: accept a user object, validate it using Zod (name, age, email)
+- _(Optional)_ `GET /random-address`: fetch a random user and return their city and postcode
 
 ## Resources
 
-- class tutorial: https://youtu.be/Z85L2i0atlk
-- example code from the video: https://github.com/mvdgragt/BEDCourse/blob/week5/http-express-crud/server.ts
-- https://expressjs.com/en/starter/basic-routing.html
-- https://expressjs.com/en/4x/api.html#req.body
-- https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
-- https://docs.insomnia.rest/insomnia/send-your-first-request
-- https://www.npmjs.com/package/express
+-
+
+- Useful Websites:
+  - https://expressjs.com/en/starter/basic-routing.html
+  - https://randomuser.me/documentation
+  - https://zod.dev/
+  - https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+  - https://docs.insomnia.rest/insomnia/send-your-first-request
 
 ### Key Concepts
 
 ```ts
 /*
-app.get(path, handler)     // read/retrieve data
-app.post(path, handler)    // create new data
-app.put(path, handler)     // update existing data
-app.delete(path, handler)  // remove data
+fetch(url)                 // call an external API from your server
+schema.safeParse(data)     // validate data against a Zod schema without throwing
+res.status(code)           // set the HTTP status code before responding
+res.json()                 // send a JSON response
 
-req.body     // data sent in the request body (needs app.use(express.json()))
-req.params   // dynamic values in the URL, e.g. /parties/:id
-
-Status codes to think about this time:
-200 OK           — success, here's your data
-201 Created      — something new was successfully created
-400 Bad Request  — the request body was missing required fields
-404 Not Found    — that resource doesn't exist (e.g. no party with that id)
-500 Internal Server Error — something broke on the server
+Common status codes for this assignment:
+200 OK                      : success, here's your data
+201 Created                 : a new resource (user) was created successfully
+400 Bad Request             : the data sent to the server was invalid
+500 Internal Server Error   : something broke on the server (e.g. the external API failed)
 */
 ```
 
-## Easy (Tasks 1–3)
+## Skill 1: Minimal Server & Ping
 
-### Task 1: List All Parties
+Create `server.ts` and import Express. Start the server listening on `PORT 3000`.
 
-Build a `GET /parties` route that returns the full `parties` array with `res.json`.
+Add a `GET /ping` route that responds with a JSON object: `{ message: 'pong' }`. This confirms your server is up and running before you build anything else.
 
-### Task 2: Add a New Party
+## Skill 2: Fetch a Random Person
 
-Build a `POST /parties` route that reads `name`, `leader`, and `seats` from `req.body`, creates a new `Party` object with a new `id`, pushes it into the array, and responds with a confirmation message and the new party.
+Add a `GET /random-person` route that:
 
-### Task 3: Testing With Insomnia
+- Uses `fetch` to call `https://randomuser.me/api/`
+- Validates the response shape with a Zod schema (don't trust the external data blindly!)
+- Returns just the person's **full name** and **country** (not the email this time)
+- Responds with `500` and a clear error message if the fetched data fails validation, or if the fetch itself fails
 
-Test both routes in Insomnia. For `GET /parties`, confirm you get `200` and the array looks right. For `POST /parties`, send a JSON body with a new party and confirm the response includes it.
+## Skill 3: User Signup Route (POST)
 
-## Medium (Tasks 4–6)
+Add a `POST /users` route that accepts an object with `name`, `age`, and `email`.
 
-### Task 4: Update a Party's Info
+Validate it with a Zod schema using these rules:
 
-Build a `PUT /parties/:id` route. Find the party by `id` (parsed from `req.params`), update whichever fields (`name`, `leader`, `seats`) were sent in `req.body`, and return the updated party. If no party matches that `id`, respond with `404` and a helpful message.
+- `name`: a string between 3 and 12 characters
+- `age`: optional; if provided, must be between 18 and 100; defaults to 28 if not provided
+- `email`: must be a valid email address, and should be normalized to lowercase
 
-### Task 5: Remove a Party
+If validation succeeds, respond with `201` and the validated user object. If it fails, respond with `400` and the Zod error details.
 
-Build a `DELETE /parties/:id` route that removes the matching party from the array and responds with a confirmation message.
+## Skill 4 Challenge (Optional)
 
-### Task 6: Handling Bad Input
+### Fetch Additional Data: `/random-login`
 
-Update your `POST /parties` route so that if `name` or `leader` is missing from `req.body`, it responds with `res.status(400).json(...)` and an error message instead of creating a broken party. Test this in Insomnia by sending an incomplete body on purpose.
+Add a `GET /random-login` route that:
 
-## Challenging => Optional (Tasks 7–9)
+- Fetches a random user from the RandomUser API
+- Validates the response with Zod to make sure the fields you need actually exist
+- Returns the user's **username** and **registered date**
 
-### Task 7: Explicit Status on Create
+**Bonus:** Instead of returning raw JSON, include a short summary string in the response, formatted like:
 
-Make sure your `POST /parties` route explicitly responds with `res.status(201).json(...)` on success, since `201` (not `200`) is the correct code for "something was created." Confirm this in Insomnia.
-
-### Task 8: A Seats Total Route
-
-Add a `GET /parties/seats-total` route that adds up the `seats` field across every party in the array and returns it as JSON, e.g. `{ totalSeats: 349 }`.
-
-> Note: route order matters here. This route needs to be declared _before_ any `GET /parties/:id` route you might add, or Express will try to match `"seats-total"` as an `:id`.
-
-### Task 9: Document Your API
-
-Write a short `README.md` listing every route you built (method, path, expected request body if any, what it returns, and the status codes you tested in Insomnia, both the success case and at least one error case like `404` or `400`). Paste an Insomnia screenshot for each route as proof.
+```
+"grumpykoala42 (registered on 2014-03-11)"
+```
 
 ## When You Finish
 
-Push your updated project to the same GitHub repository, on the branch: `week5/http-express-crud`
+Test all your routes in Insomnia and confirm each one returns the correct status code and data, including the `400` and `500` error cases. Push your project to your GitHub repository, use for example the following branch: week6/zod
 
-Good luck — you've now built a full CRUD API, which is the same basic shape behind most real-world backends you'll ever work with!
+Good luck, and remember: validating the data you send _and_ receive is what keeps a real-world API from crashing on the first weird input someone throws at it!
