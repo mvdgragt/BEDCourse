@@ -66,7 +66,7 @@ Make sure you have:
 
 - Volumes for both containers so your data is saved when you shut them down
 - Your usernames, passwords, database name and ports in a `.env` file
-- `restart: always` on both services
+- `restart: always` or even better => `restart: unless-stopped` on both services
 
 Run `docker compose up -d` and check with `docker container ls` that both containers are running.
 
