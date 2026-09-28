@@ -1,112 +1,140 @@
-# HTTP & Express Homework - Week 5: CRUD Edition
+# SQL Basics Homework: Docker, pgAdmin & PostgreSQL
 
 ### Practice Based on Class Code
 
-In the last homework you built static `GET`-only routes around your own topic. In class this week we moved on to full CRUD (`GET`, `POST`, `PUT`, `DELETE`) using an in-memory `books` array as our example.
+In class we learned what containers are, how Docker uses a `compose.yml` file to build and run them, and how to spin up a **PostgreSQL** database together with **pgAdmin** so we can write SQL queries in the browser. We also added volumes so our data survives a restart, and moved our settings into a `.env` file.
 
-For this homework, use that same pattern as your blueprint, but **rebuild it around the 2026 Swedish general election (riksdagsval)** instead of books. Create a repo and branch it to: `week6/http-express-crud`.
+This week you'll use that same setup to load a real practice database and work through the **Basic** exercises on [PostgreSQL Exercises](https://pgexercises.com/).
 
-Your data should be an in-memory array of objects, structured like this:
+## Goal
 
-```ts
-type Party = {
-  id: number;
-  name: string;
-  leader: string;
-  seats: number;
-};
+Get comfortable running Postgres and pgAdmin in Docker, and practice writing basic SQL queries: `SELECT`, `WHERE`, `LIKE`, `IN`, `CASE`, `ORDER BY`, `DISTINCT`, `UNION` and simple aggregates like `MAX` and `COUNT`.
 
-type PartyParams = {
-  id: string;
-};
+**Videos:**
 
-let parties: Party[] = [
-  { id: 1, name: "Socialdemokraterna", leader: "Example Name", seats: 107 },
-  { id: 2, name: "Moderaterna", leader: "Example Name", seats: 68 },
-];
+- Part 1 (Containers, Docker, Postgres & pgAdmin): https://youtu.be/9DIF5Ma--bQ
+- Part 2 (Volumes, depends_on & .env): https://www.youtube.com/watch?v=Pvz0CEqnSj0
+
+## Project Outline
+
 ```
-
-(Feel free to look up real party names, leaders, and seat counts from the most recent Riksdag election for realism. Just don't stress about getting every number perfectly up to date.)
-
-Every task below builds on the `app.get`, `app.post`, `app.put`, `app.delete`, `res.json`, `res.send`, and `res.status` patterns we used in class with the `/books` routes. Tasks 1–3 are easy, 4–6 are medium, and 7–9 are challenging and optional.
+week7-sqlbasics/
+  ├── compose.yml   : your Postgres + pgAdmin containers
+  ├── .env          : your environment variables
+  └── cd.sql        : your answers to the exercises
+```
 
 ## Resources
 
-- class tutorial: https://youtu.be/Z85L2i0atlk
-- example code from the video: https://github.com/mvdgragt/BEDCourse/blob/week5/http-express-crud/server.ts
-- https://expressjs.com/en/starter/basic-routing.html
-- https://expressjs.com/en/4x/api.html#req.body
-- https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
-- https://docs.insomnia.rest/insomnia/send-your-first-request
-- https://www.npmjs.com/package/express
+- Useful Websites:
+  - https://pgexercises.com/
+  - https://pgexercises.com/gettingstarted.html
+  - https://hub.docker.com/_/postgres
+  - https://hub.docker.com/r/dpage/pgadmin4
+  - https://www.w3schools.com/postgresql/
+  - https://www.postgresql.org/docs/current/
 
 ### Key Concepts
 
-```ts
-/*
-app.get(path, handler)     // read/retrieve data
-app.post(path, handler)    // create new data
-app.put(path, handler)     // update existing data
-app.delete(path, handler)  // remove data
-
-req.body     // data sent in the request body (needs app.use(express.json()))
-req.params   // dynamic values in the URL, e.g. /parties/:id
-
-Status codes to think about this time:
-200 OK           — success, here's your data
-201 Created      — something new was successfully created
-400 Bad Request  — the request body was missing required fields
-404 Not Found    — that resource doesn't exist (e.g. no party with that id)
-500 Internal Server Error — something broke on the server
-*/
+```bash
+docker compose up -d        # start the containers (detached, so you keep your terminal)
+docker compose down         # stop and remove the containers (data stays in the volumes!)
+docker container ls         # list running containers
+docker inspect <id>         # find the IP address of a container
 ```
 
-## Easy (Tasks 1–3)
+```sql
+SELECT col1, col2 FROM table;           -- choose which columns you get back
+WHERE condition                         -- choose which rows you get back
+LIKE '%text%'                           -- basic string search
+IN (1, 5)                               -- match against several values
+CASE WHEN ... THEN ... ELSE ... END     -- put results into buckets
+ORDER BY col DESC LIMIT 10              -- sort and limit your results
+DISTINCT                                -- remove duplicates
+UNION                                   -- combine results from two queries
+MAX(col), COUNT(*)                      -- simple aggregation
+```
 
-### Task 1: List All Parties
+## Skill 1: Docker Setup
 
-Build a `GET /parties` route that returns the full `parties` array with `res.json`.
+Create a `compose.yml` with two services, just like in the videos:
 
-### Task 2: Add a New Party
+- A **Postgres** container using the official `postgres` image
+- A **pgAdmin** container using the `dpage/pgadmin4` image, which `depends_on` the database
 
-Build a `POST /parties` route that reads `name`, `leader`, and `seats` from `req.body`, creates a new `Party` object with a new `id`, pushes it into the array, and responds with a confirmation message and the new party.
+Make sure you have:
 
-### Task 3: Testing With Insomnia
+- Volumes for both containers so your data is saved when you shut them down
+- Your usernames, passwords, database name and ports in a `.env` file
+- `restart: always` on both services
 
-Test both routes in Insomnia. For `GET /parties`, confirm you get `200` and the array looks right. For `POST /parties`, send a JSON body with a new party and confirm the response includes it.
+Run `docker compose up -d` and check with `docker container ls` that both containers are running.
 
-## Medium (Tasks 4–6)
+## Skill 2: Connect pgAdmin to Postgres
 
-### Task 4: Update a Party's Info
+Go to `http://localhost:8080` and log in with the pgAdmin email and password from your `.env` file.
 
-Build a `PUT /parties/:id` route. Find the party by `id` (parsed from `req.params`), update whichever fields (`name`, `leader`, `seats`) were sent in `req.body`, and return the updated party. If no party matches that `id`, respond with `404` and a helpful message.
+Add a new server:
 
-### Task 5: Remove a Party
+- Find the IP address of your Postgres container with `docker inspect`
+- Use port **5432** (the port _inside_ the container, not the one on your laptop!)
+- Use the Postgres username and password from your `.env` file
 
-Build a `DELETE /parties/:id` route that removes the matching party from the array and responds with a confirmation message.
+## Skill 3: Load the Country Club Data
 
-### Task 6: Handling Bad Input
+The exercises use a dataset for a country club, with three tables in a schema called `cd`: `members`, `facilities` and `bookings`. Read the [Getting Started](https://pgexercises.com/gettingstarted.html) page to get to know the tables.
 
-Update your `POST /parties` route so that if `name` or `leader` is missing from `req.body`, it responds with `res.status(400).json(...)` and an error message instead of creating a broken party. Test this in Insomnia by sending an incomplete body on purpose.
+1. Download the SQL file: https://pgexercises.com/dbfiles/clubdata.sql
+2. Open the **Query Tool** in pgAdmin on your database
+3. Copy the code from the file into the Query Tool and run it
 
-## Challenging => Optional (Tasks 7–9)
+**Tip:** The top of the file is written for the `psql` command-line tool. If you get an error on lines that create a new database or start with a backslash (like `\c exercises`), delete those lines and start from `CREATE SCHEMA cd;`. The tables will then be created in your own database.
 
-### Task 7: Explicit Status on Create
+Check that it worked:
 
-Make sure your `POST /parties` route explicitly responds with `res.status(201).json(...)` on success, since `201` (not `200`) is the correct code for "something was created." Confirm this in Insomnia.
+```sql
+SELECT * FROM cd.facilities;
+```
 
-### Task 8: A Seats Total Route
+You should see a list of facilities such as tennis courts, a squash court and a snooker table.
 
-Add a `GET /parties/seats-total` route that adds up the `seats` field across every party in the array and returns it as JSON, e.g. `{ totalSeats: 349 }`.
+## Skill 4: The Basic Exercises
 
-> Note: route order matters here. This route needs to be declared _before_ any `GET /parties/:id` route you might add, or Express will try to match `"seats-total"` as an `:id`.
+Work through **all the exercises** in the [Basic section](https://pgexercises.com/questions/basic/):
 
-### Task 9: Document Your API
+1. Retrieve everything from a table
+2. Retrieve specific columns from a table
+3. Control which rows are retrieved
+4. Control which rows are retrieved – part 2
+5. Basic string searches
+6. Matching against multiple possible values
+7. Classify results into buckets
+8. Working with dates
+9. Removing duplicates, and ordering results
+10. Combining results from multiple queries
+11. Simple aggregation
+12. More aggregation
 
-Write a short `README.md` listing every route you built (method, path, expected request body if any, what it returns, and the status codes you tested in Insomnia, both the success case and at least one error case like `404` or `400`). Paste an Insomnia screenshot for each route as proof.
+Write each query in pgAdmin first and make sure it returns the correct result. Then copy it into `cd.sql`, with a comment above each one, like this:
+
+```sql
+-- 1. Retrieve everything from a table
+SELECT * FROM cd.facilities;
+
+-- 2. Retrieve specific columns from a table
+SELECT name, membercost FROM cd.facilities;
+```
+
+**Try it yourself first!** Every exercise on the site has a hint and an answer. Use the hint if you're stuck, but only look at the answer once you've tried. When you check the answer, read the explanation too; that's where the learning happens.
+
+**Note:** Your results may come back in a slightly different order than on the website. That's okay, as long as the rows are the same (unless the exercise asks you to sort them).
 
 ## When You Finish
 
-Push your updated project to the same GitHub repository, on the branch: `week5/http-express-crud`
+Make sure `cd.sql` runs from top to bottom in pgAdmin without errors.
 
-Good luck — you've now built a full CRUD API, which is the same basic shape behind most real-world backends you'll ever work with!
+Push your project to your GitHub repository on the following branch: `week7/sqlbasics`
+
+Your submission should include `compose.yml` and `cd.sql`. Add your `.env` file to `.gitignore` so your passwords don't end up on GitHub. Good practice, even if the password is just `root`!
+
+Good luck, and remember: every app you've built so far had data that disappeared when you restarted the server. From now on, your data lives in a real database!
