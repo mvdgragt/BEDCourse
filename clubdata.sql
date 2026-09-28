@@ -1,14 +1,6 @@
---
--- PostgreSQL database dump
---
+
 CREATE DATABASE exercises;
 CREATE SCHEMA cd;
-
-
-
--- Dumped from database version 9.2.0
--- Dumped by pg_dump version 9.2.0
--- Started on 2013-05-19 16:05:10 BST
 
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
@@ -21,11 +13,6 @@ SET default_tablespace = '';
 
 SET default_with_oids = false;
 
---
--- TOC entry 171 (class 1259 OID 32818)
--- Name: bookings; Type: TABLE; Schema: cd; Owner: -; Tablespace:
---
-
 CREATE TABLE bookings (
     bookid integer NOT NULL,
     facid integer NOT NULL,
@@ -33,12 +20,6 @@ CREATE TABLE bookings (
     starttime timestamp without time zone NOT NULL,
     slots integer NOT NULL
 );
-
-
---
--- TOC entry 169 (class 1259 OID 32770)
--- Name: facilities; Type: TABLE; Schema: cd; Owner: -; Tablespace:
---
 
 CREATE TABLE facilities (
     facid integer NOT NULL,
