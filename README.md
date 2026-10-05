@@ -1,139 +1,290 @@
-# SQL Joins Homework: Relationships, JOINs & Subqueries
+# Express + PostgreSQL Homework: Building a CRUD API with a Real Database
 
 ### Practice Based on Class Code
 
-In the last lesson we set up **PostgreSQL** and **pgAdmin** in Docker, loaded the country club database and practiced basic SQL queries on a single table.
+In class we connected **Express** to **PostgreSQL** using the `pg` package. We created a connection **pool** with our settings from a `.env` file, made an `athletes` table in pgAdmin, and built a full **CRUD** API:
 
-In this lesson we learned how tables can be **related** to each other: **one-to-one** (a user and their profile), **one-to-many** (an author and their books) and **many-to-many** (students and courses, connected with a **junction table**). We used **foreign keys** to link tables, a **composite primary key** to stop duplicates, and **JOIN** to combine data from several tables in one query.
+- `GET` to read all athletes (`SELECT`)
+- `POST` to add an athlete (`INSERT ... RETURNING *`)
+- `PUT` to update an athlete by id (`UPDATE ... WHERE id = $4`)
+- `DELETE` to remove an athlete by id (`DELETE ... WHERE id = $1`)
 
-This week you'll use the same Docker setup and the same country club data to work through the **Joins and Subqueries** exercises on [PostgreSQL Exercises](https://pgexercises.com/).
+We used **parameterized queries** (`$1`, `$2`, ...) to safely pass values into SQL, `async`/`await` with `try`/`catch` for errors, and **Insomnia** to test our routes.
+
+Remember the analogy: **PostgreSQL** is the library, **Node.js** is the librarian, and **Express** is the service desk where people come to ask for books. This week you'll build that library for real!
 
 ## Goal
 
-Understand how tables are connected with primary and foreign keys, and practice combining data from several tables with `JOIN`, `LEFT OUTER JOIN`, self-joins and subqueries.
+Build an Express API that stores its data in PostgreSQL. Practice CRUD routes, parameterized queries, status codes, validation, and finally connect the SQL you learned (joins, `GROUP BY`, relationships) to your backend.
 
 **Videos:**
 
 - Part 1 (Containers, Docker, Postgres & pgAdmin): https://youtu.be/9DIF5Ma--bQ
 - Part 2 (Volumes, depends_on & .env): https://www.youtube.com/watch?v=Pvz0CEqnSj0
 - Part 3 (Relationships, JOINs, GROUP BY & ORDER BY): https://www.youtube.com/watch?v=7NJmsSNPKi8
+- Part 4 (Connecting PostgreSQL to Express): https://www.youtube.com/watch?v=frTlOUg3-Ik
 
 ## Project Outline
 
 ```
-week7/sqljoins
-  ├── compose.yml      : your Postgres + pgAdmin containers (from last week)
-  ├── .env             : your environment variables
-  ├── relationships.sql: your tables from the video
-  └── joins.sql        : your answers to the exercises
+week8-express-postgres/
+  ├── compose.yml     : your Postgres + pgAdmin containers
+  ├── .env            : your environment variables (NOT on GitHub!)
+  ├── .gitignore      : node_modules and .env
+  ├── package.json    : with "type": "module"
+  ├── init.sql        : all your CREATE TABLE and INSERT statements
+  ├── db.js           : your connection pool
+  ├── index.js        : your Express server and routes
+  └── public/         : (challenge 9) your frontend
+      ├── index.html
+      └── script.js
 ```
 
 ## Resources
 
+- Extra Reading:
+  - **node-postgres** (the `pg` package):
+    - Getting started: https://node-postgres.com/
+    - Queries and parameters: https://node-postgres.com/features/queries
+    - Pooling: https://node-postgres.com/features/pooling
+    - Transactions (challenge bonus): https://node-postgres.com/features/transactions
+  - **Express** routing and `req.params` / `req.query` / `req.body`: https://expressjs.com/en/guide/routing.html
+  - **HTTP status codes** (which one should I send?): https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+  - **SQL injection**, and why we use `$1` instead of putting values straight into the SQL string: https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html
+  - **dotenv**: https://www.npmjs.com/package/dotenv
+  - **PostgreSQL error codes** (useful for medium 6): https://www.postgresql.org/docs/current/errcodes-appendix.html
 - Useful Websites:
-  - https://pgexercises.com/questions/joins/
-  - https://pgexercises.com/gettingstarted.html
-  - https://www.w3schools.com/postgresql/postgresql_joins.php
-  - https://www.postgresql.org/docs/current/tutorial-join.html
-  - https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-FK
+  - https://www.w3schools.com/postgresql/
+  - https://www.postgresql.org/docs/current/
+  - https://hub.docker.com/_/postgres
+
+**Read before you start:** the node-postgres _Queries_ page and the OWASP SQL injection page. They explain _why_ we write our queries the way we do.
 
 ### Key Concepts
 
-```sql
--- Relationships
-PRIMARY KEY                                  -- uniquely identifies each row
-FOREIGN KEY (author_id) REFERENCES authors(id)  -- links a column to another table
-PRIMARY KEY (student_id, course_id)          -- composite primary key (junction tables)
-
--- Joins
-SELECT a.name, b.title
-FROM authors a                               -- "a" is an alias (a short name for the table)
-JOIN books b ON a.id = b.author_id;          -- INNER JOIN: only rows that match in both tables
-
-SELECT m.firstname, r.firstname
-FROM cd.members m
-LEFT OUTER JOIN cd.members r                 -- LEFT JOIN: keep ALL rows from the left table,
-  ON r.memid = m.recommendedby;              -- even if there is no match (you get NULL instead)
-
--- A self-join is when a table is joined to itself.
--- You MUST use two different aliases (like m and r above) so Postgres knows which copy you mean.
-
--- Subqueries: a query inside another query
-SELECT name FROM cd.facilities
-WHERE facid IN (SELECT facid FROM cd.bookings);
+```bash
+npm init -y
+npm install express pg dotenv
+docker compose up -d
+node --watch index.ts       # restarts the server automatically when you save!
 ```
 
-## Skill 1: Rebuild the Relationships from the Video
+```js
+// db.js: one shared connection pool for the whole app
+import pg from "pg";
+import dotenv from "dotenv";
 
-Make sure Docker is running, then start your containers from last week:
+dotenv.config();
+const { Pool } = pg;
+
+export const pool = new Pool({
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: process.env.DB_DATABASE,
+  password: process.env.DB_PASSWORD,
+  port: process.env.DB_PORT,
+});
+```
+
+```js
+// A parameterized query: values go in the array, NEVER straight into the SQL string
+const result = await pool.query("SELECT * FROM books WHERE id = $1", [id]);
+
+result.rows; // an array with all returned rows
+result.rows[0]; // the first row (undefined if there are no rows)
+result.rowCount; // how many rows were returned or changed
+```
+
+```js
+// Where does the data come from?
+req.params; // /books/:id         → /books/5           → { id: "5" }
+req.query; // /books?genre=drama → { genre: "drama" }
+req.body; // the JSON you send in Insomnia (needs app.use(express.json()))
+```
+
+```
+200 OK            → it worked, here is your data
+201 Created       → a new row was created (use this for POST!)
+400 Bad Request   → the client sent wrong or missing data
+404 Not Found     → that id doesn't exist
+409 Conflict      → that clashes with existing data (e.g. book already borrowed)
+500 Server Error  → something went wrong on our side
+```
+
+## Skill 1: Setup
+
+Reuse your Docker setup from week 7, **not** the shorter one from the video. Make sure you have:
+
+- A **Postgres** and a **pgAdmin** service, with **volumes** for both
+- `depends_on` on pgAdmin and `restart: unless-stopped` on both
+- All usernames, passwords and ports in `.env`
+
+Your Node app and Docker can share **one** `.env` file. Docker Compose reads `.env` automatically, so you can write:
+
+```yaml
+environment:
+  POSTGRES_USER: ${DB_USER}
+  POSTGRES_PASSWORD: ${DB_PASSWORD}
+  POSTGRES_DB: ${DB_DATABASE}
+```
 
 ```bash
-docker compose up -d
+# .env
+DB_USER=librarian
+DB_PASSWORD=password
+DB_DATABASE=library
+DB_HOST=localhost
+DB_PORT=5432
+PORT=3000
 ```
 
-Open pgAdmin on `http://localhost:8080` and open the Query Tool. Recreate the three examples from the video and save the code in `relationships.sql`:
+**Why `localhost` in Node, but not in pgAdmin?** Your Node server runs on your laptop, so it reaches Postgres through the port you opened (`localhost:5432`). pgAdmin runs _inside_ Docker, so it reaches Postgres by its service name (e.g. `db`) or by its IP from `docker inspect`.
 
-1. **One-to-one:** a `users` table and a `profiles` table, where `profiles.user_id` is `UNIQUE` and a foreign key to `users.id`
-2. **One-to-many:** an `authors` table and a `books` table, where `books.author_id` is a foreign key to `authors.id`
-3. **Many-to-many:** a `students` table, a `courses` table and a `student_courses` junction table with a composite primary key
-
-For each one, insert a few rows and write a `SELECT` with a `JOIN` that shows the connected data (for example, every student with the courses they take).
-
-**Try to break it!** Insert a book with an `author_id` that doesn't exist, or add the same student to the same course twice. What error do you get, and why? Write your answer as a comment in `relationships.sql`.
-
-## Skill 2: Map the Country Club Relationships
-
-Before you start the exercises, look at the three tables in the `cd` schema again: `members`, `facilities` and `bookings`. Read the [Getting Started](https://pgexercises.com/gettingstarted.html) page and look at the diagram.
-
-Answer these questions as comments at the top of `joins.sql`:
-
-- Which columns in `cd.bookings` are foreign keys, and which tables do they point to?
-- What kind of relationship is there between `members` and `facilities`? Which table plays the role of the junction table, like `student_courses` in the video?
-- The `recommendedby` column in `cd.members` points back to `cd.members` itself. What kind of relationship is that?
-
-**Tip:** If your containers were removed but your volume is still there, the country club data should still be in your database. Check with `SELECT * FROM cd.members;`. If it's gone, load `clubdata.sql` again like last week.
-
-## Skill 3: The Joins and Subqueries Exercises
-
-Work through **all the exercises** in the [Joins and Subqueries section](https://pgexercises.com/questions/joins/):
-
-1. Retrieve the start times of members' bookings
-2. Work out the start times of bookings for tennis courts
-3. Produce a list of all members who have recommended another member
-4. Produce a list of all members, along with their recommender
-5. Produce a list of all members who have used a tennis court
-6. Produce a list of costly bookings
-7. Produce a list of all members, along with their recommender, using no joins
-8. Produce a list of costly bookings, using a subquery
-
-Write each query in pgAdmin first and make sure it returns the correct result. Then copy it into `joins.sql`, with a comment above each one, like this:
+Then, in pgAdmin, create the `books` table and save the SQL in `init.sql`:
 
 ```sql
--- 1. Retrieve the start times of members' bookings
-SELECT bks.starttime
-FROM cd.bookings bks
-JOIN cd.members mems ON mems.memid = bks.memid
-WHERE mems.firstname = 'David' AND mems.surname = 'Farrell';
+CREATE TABLE books (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(100) NOT NULL,
+    genre VARCHAR(50),
+    published_year INT
+);
+
+INSERT INTO books (title, genre, published_year)
+VALUES
+('The Hobbit', 'fantasy', 1937),
+('1984', 'dystopian', 1949),
+('Pippi Longstocking', 'children', 1945),
+('The Hunger Games', 'dystopian', 2008);
 ```
 
-**Hints for the tricky ones:**
+Finally, rebuild the four CRUD routes from the video, but for `books` instead of `athletes`. Test all four in Insomnia before you continue.
 
-- **3 and 4** are self-joins. Think of it as having two copies of the `members` table: one for the member and one for the person who recommended them.
-- **4** asks for _all_ members, including the ones nobody recommended. Which kind of join keeps rows that have no match?
-- **5 and 6** join three tables, just like students → student_courses → courses in the video.
-- **6** needs the `CASE` you used last week: guests (`memid = 0`) pay a different price than members.
-- **7 and 8** are the hardest. They use subqueries instead of (or together with) joins. Don't worry if you need the hint here!
+**Tip:** Don't forget `"type": "module"` in `package.json` and `app.use(express.json())` in `index.js`. In the video, both caused errors when they were missing!
 
-**Try it yourself first!** Every exercise on the site has a hint and an answer. Use the hint if you're stuck, but only look at the answer once you've tried. When you check the answer, read the explanation too; that's where the learning happens.
+## Skill 2: The Assignments
 
-**Note:** Your results may come back in a slightly different order than on the website. That's okay, as long as the rows are the same (unless the exercise asks you to sort them).
+Do the assignments in order; each one builds on the last. For every route you make, create a request for it in **Insomnia** and test both the happy path _and_ the error cases (wrong id, missing data, etc.).
+
+### 🟢 Easy
+
+**1. Get one book by id**
+
+The video's recap mentions fetching data by id, but we never built it! Create `GET /books/:id`.
+
+- Return the book as JSON with status `200`
+- Return `404` with a message like `"Book not found"` if the id doesn't exist
+- Test it with an id that exists, one that doesn't (e.g. `999`) and something weird like `/books/abc`. What happens? (You'll fix that in exercise 2.)
+
+**2. Use the right status codes and validate input**
+
+- `POST /books` should return `201 Created` instead of `200`
+- If `title` is missing from the body, return `400` with a clear message _before_ running any SQL
+- If `id` in the URL isn't a number (`/books/abc`), return `400` instead of crashing with a `500`
+
+**Hint:** `Number.isInteger(Number(id))` tells you if `id` is a whole number.
+
+**3. Clean up the project structure**
+
+- Move the pool to its own file, `db.js`, and `import { pool } from "./db.js"` in `index.js`
+- Add the missing `port: process.env.DB_PORT` to the pool
+- Read the server port from `.env` (`process.env.PORT`) and use it in `app.listen`
+- Change the "get all" route from `/` to `/books`, so all book routes start with `/books`. Put a welcome message back on `/`.
+
+### 🟡 Medium
+
+**4. Filter and sort with query parameters**
+
+Make `GET /books` support optional query parameters:
+
+- `/books?genre=dystopian` → only dystopian books
+- `/books?sort=published_year` → sorted by year
+- `/books?genre=dystopian&sort=title` → both together!
+- Without any parameters, it should still return all books
+
+**Watch out:** You can use `$1` for _values_ (like the genre), but **not** for column names in `ORDER BY`. Never put `req.query.sort` straight into your SQL string, since that opens the door to SQL injection! Instead, make a list of allowed columns and check against it:
+
+```js
+const allowedSorts = ["title", "published_year", "genre"];
+```
+
+If `sort` is not in the list, return `400`.
+
+**5. Partial updates with PATCH**
+
+With our `PUT` route, if you only send `{ "genre": "classic" }`, the title and year become `NULL`! Create `PATCH /books/:id` that only updates the fields you actually send.
+
+- Sending `{ "genre": "classic" }` changes only the genre
+- Return the updated book, or `404` if it doesn't exist
+- Return `400` if the body is empty
+
+**Hint:** Look up `COALESCE` in PostgreSQL. `SET title = COALESCE($1, title)` means "use the new value, or keep the old one if the new value is `NULL`."
+
+**6. Add authors (one-to-many)**
+
+Just like in the relationships video, one author can write many books, but each book has one author.
+
+- Create an `authors` table (`id`, `name`) and add an `author_id` column to `books` that is a **foreign key** to `authors(id)`. (Look up `ALTER TABLE ... ADD COLUMN`.) Add the SQL to `init.sql`.
+- Create `GET /authors`, `POST /authors` and `GET /authors/:id/books`, which returns all books by that author using a `JOIN`
+- Allow `author_id` in `POST /books`
+- If someone creates a book with an `author_id` that doesn't exist, Postgres throws an error with `err.code === "23503"` (foreign key violation). Catch it and return `400` with a helpful message instead of a `500`.
+
+### 🔴 Challenging
+
+**7. Borrowing books (many-to-many)**
+
+Members can borrow many books, and a book can be borrowed by many members over time. That's a many-to-many relationship, so you need a **junction table**.
+
+- Create a `members` table (`id`, `name`, `email UNIQUE`)
+- Create a `loans` table: `id`, `book_id` (FK), `member_id` (FK), `borrowed_at TIMESTAMP DEFAULT NOW()`, and `returned_at TIMESTAMP` (empty until the book comes back)
+- `POST /members` creates a member. If the email already exists, catch `err.code === "23505"` (unique violation) and return `409`.
+- `POST /loans` with `{ "book_id": 1, "member_id": 2 }` lets a member borrow a book. If that book is already borrowed (a loan with `returned_at IS NULL` exists), return `409 Conflict`.
+- `PATCH /loans/:id/return` sets `returned_at` to `NOW()`
+- `GET /members/:id/loans` returns the member's loans **with the book titles**, joining three tables, just like students → student_courses → courses in the relationships video
+
+**8. Search, pagination and statistics**
+
+Real APIs don't send back 10,000 rows at once.
+
+- `GET /books?search=hun` finds books whose title contains the text, ignoring upper/lower case (look up `ILIKE`)
+- `GET /books?page=2&limit=2` returns only that page (look up `LIMIT` and `OFFSET`). Default to page 1 with 10 books.
+- Change the response so it also tells the client how many results there are in total:
+
+```json
+{
+  "page": 2,
+  "limit": 2,
+  "total": 4,
+  "data": [ ... ]
+}
+```
+
+- Create `GET /stats` that returns the number of books per genre, using `COUNT(*)` and `GROUP BY`. Bonus: also return the author with the most books.
+- Make sure search, filter (from exercise 4) and pagination all work together!
+
+**9. Connect a frontend**
+
+Time to put a real website on your API!
+
+- Add `app.use(express.static("public"))` and create `public/index.html` and `public/script.js`
+- Use `fetch` to show all books on the page, with a form to add a new book and a delete button next to each book
+- Show the error message from your API when something goes wrong (e.g. adding a book without a title)
+- **Bonus:** Make Docker create your tables automatically. Mount your `init.sql` into the Postgres container at `/docker-entrypoint-initdb.d/init.sql`. Note: this only runs when the database volume is **empty**, so you'll need `docker compose down -v` to test it. That **deletes your data!**
+
+**Extra bonus (transactions):** Borrowing a book in exercise 7 is really two steps: checking that the book is available, and creating the loan. What happens if two members borrow the same book at exactly the same time? Read the node-postgres page on transactions and try to make `POST /loans` safe with `BEGIN`, `COMMIT` and `ROLLBACK`.
+
+**Try it yourself first!** Use the extra reading and the class code. If you're stuck for more than 20 minutes, `console.log` everything (`req.body`, `req.params`, `result.rows`, `err.message`), and remember that most bugs in the video were a missing `await`, a typo in `.env` or a server that needed a restart.
 
 ## When You Finish
 
-Make sure `relationships.sql` and `joins.sql` both run from top to bottom in pgAdmin without errors.
+Make sure:
 
-Push your project to your GitHub repository on the following branch: `week7/sqljoins`
+- `init.sql` runs from top to bottom in pgAdmin without errors on an empty database
+- Every route works in Insomnia, including the error cases
+- `.env` and `node_modules` are in `.gitignore`
 
-Your submission should include `compose.yml`, `relationships.sql` and `joins.sql`. Keep your `.env` file in `.gitignore` so your passwords don't end up on GitHub.
+Push your project to your GitHub repository on the following branch: `week8/express-postgres`
 
-Good luck, and remember: real apps almost never keep all their data in one table. Once you can join tables together, you can answer almost any question your data can answer!
+Your submission should include `compose.yml`, `package.json`, `init.sql`, `db.js`, `index.js` and (if you did exercise 9) the `public` folder. In your pull request, write which exercises you completed.
+
+Good luck! Last week your data lived in pgAdmin; this week your own server is the librarian. 📚
