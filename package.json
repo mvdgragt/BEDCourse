@@ -1,0 +1,31 @@
+{
+  "name": "bedcourse2026",
+  "version": "1.0.0",
+  "description": "Last week we connected **Express** to **PostgreSQL** and built a CRUD API for our library. This week we made that API safer and cleaner with two tools we looked at before:",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mvdgragt/BEDCourse.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/mvdgragt/BEDCourse/issues"
+  },
+  "homepage": "https://github.com/mvdgragt/BEDCourse#readme",
+  "dependencies": {
+    "dotenv": "^18.0.5",
+    "express": "^5.2.1",
+    "pg": "^8.23.1",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/pg": "^8.23.1"
+  }
+}
