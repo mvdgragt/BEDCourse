@@ -2,28 +2,25 @@
   "name": "bedcourse2026",
   "version": "1.0.0",
   "description": "In class we connected **Express** to **PostgreSQL** using the `pg` package. We created a connection **pool** with our settings from a `.env` file, made an `athletes` table in pgAdmin, and built a full **CRUD** API:",
-  "homepage": "https://github.com/mvdgragt/BEDCourse#readme",
-  "bugs": {
-    "url": "https://github.com/mvdgragt/BEDCourse/issues"
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "node --watch index.js"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/mvdgragt/BEDCourse.git"
   },
-  "license": "ISC",
+  "keywords": [],
   "author": "",
+  "license": "ISC",
   "type": "module",
-  "main": "index.js",
-  "scripts": {
-    "dev": "node --watch index.ts"
+  "bugs": {
+    "url": "https://github.com/mvdgragt/BEDCourse/issues"
   },
+  "homepage": "https://github.com/mvdgragt/BEDCourse#readme",
   "dependencies": {
-    "dotenv": "^18.0.7",
     "express": "^5.3.0",
-    "pg": "^8.23.1"
-  },
-  "devDependencies": {
-    "@types/express": "^5.0.6",
-    "@types/pg": "^8.23.1"
+    "mongoose": "^9.11.2"
   }
 }
