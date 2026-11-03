@@ -66,7 +66,7 @@ app.get("/books", async (req: Request, res: Response) => {
 /* 1: -- Get one book by id --
       - 200 with the book, 404 if not found, 400 if id is not a number
 */
-app.get("/books/:id", async (req: Request, res: Response) => {
+app.get("/books/:id", async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   if (!isValidId(id)) {
     res.status(400).json({ error: "id must be a whole number" });
@@ -112,7 +112,7 @@ app.post("/books", async (req: Request, res: Response) => {
 
 // PUT replaces the WHOLE book: any field you don't send becomes NULL.
 // That's why title is required here too.
-app.put("/books/:id", async (req: Request, res: Response) => {
+app.put("/books/:id", async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   if (!isValidId(id)) {
     res.status(400).json({ error: "id must be a whole number" });
@@ -148,7 +148,7 @@ app.put("/books/:id", async (req: Request, res: Response) => {
       - Only updates the fields you send
       - 404 if the book doesn't exist, 400 if the body is empty
 */
-app.patch("/books/:id", async (req: Request, res: Response) => {
+app.patch("/books/:id", async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   if (!isValidId(id)) {
     res.status(400).json({ error: "id must be a whole number" });
@@ -190,7 +190,7 @@ app.patch("/books/:id", async (req: Request, res: Response) => {
   }
 });
 
-app.delete("/books/:id", async (req: Request, res: Response) => {
+app.delete("/books/:id", async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   if (!isValidId(id)) {
     res.status(400).json({ error: "id must be a whole number" });
