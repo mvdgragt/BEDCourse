@@ -1,290 +1,373 @@
-# Express + PostgreSQL Homework: Building a CRUD API with a Real Database
+# Week 10 – Unit Tests, Integration Tests and Zod
 
-### Practice Based on Class Code
+**Video:** [Integration Testing with the Pizza Shop](https://www.youtube.com/watch?v=Ydlo-f1Mdl4)
 
-In class we connected **Express** to **PostgreSQL** using the `pg` package. We created a connection **pool** with our settings from a `.env` file, made an `athletes` table in pgAdmin, and built a full **CRUD** API:
+**Code from the lesson:** [github.com/mvdgragt/BEDCourse – week10/TDD](https://github.com/mvdgragt/BEDCourse/tree/week10/TDD)
 
-- `GET` to read all athletes (`SELECT`)
-- `POST` to add an athlete (`INSERT ... RETURNING *`)
-- `PUT` to update an athlete by id (`UPDATE ... WHERE id = $4`)
-- `DELETE` to remove an athlete by id (`DELETE ... WHERE id = $1`)
+In Cyber Dojo you tested **one function at a time**. In the pizza shop video you saw that this isn't always enough: `createPizza`, `sendOrder` and `chargeCustomer` each worked on their own, but `orderPizza` still broke when they were put together. That's what **integration tests** are for.
 
-We used **parameterized queries** (`$1`, `$2`, ...) to safely pass values into SQL, `async`/`await` with `try`/`catch` for errors, and **Insomnia** to test our routes.
+In the lesson code, **Zod** checks every value that goes into a function. If something is wrong, `parse()` throws an error straight away, instead of letting a bad value travel through the whole chain.
 
-Remember the analogy: **PostgreSQL** is the library, **Node.js** is the librarian, and **Express** is the service desk where people come to ask for books. This week you'll build that library for real!
+This week you'll do both. You start with the pizza shop from the lesson, then you build a small **library loan system**, the same domain as your library project, with Zod and tests from the start.
 
-## Goal
+---
 
-Build an Express API that stores its data in PostgreSQL. Practice CRUD routes, parameterized queries, status codes, validation, and finally connect the SQL you learned (joins, `GROUP BY`, relationships) to your backend.
+## Learning goals
 
-**Videos:**
+After this assignment you can:
 
-- Part 1 (Containers, Docker, Postgres & pgAdmin): https://youtu.be/9DIF5Ma--bQ
-- Part 2 (Volumes, depends_on & .env): https://www.youtube.com/watch?v=Pvz0CEqnSj0
-- Part 3 (Relationships, JOINs, GROUP BY & ORDER BY): https://www.youtube.com/watch?v=7NJmsSNPKi8
-- Part 4 (Connecting PostgreSQL to Express): https://www.youtube.com/watch?v=frTlOUg3-Ik
+- Explain the difference between a unit test and an integration test
+- Use the red → green → refactor loop with Vitest
+- Write Zod schemas with `z.enum`, `z.object` and `z.number()`, and use `z.infer` to get TypeScript types from them
+- Test that a function throws when it gets bad input
+- Test functions that use random values
+- Find a bug that only shows up when functions work together
 
-## Project Outline
+---
 
+## Before you start
+
+1. Create a new branch: `week10`
+2. Copy `pizzashop.ts`, `pizzashop.test.ts` and `pizzashop.integration.test.ts` from the [lesson repository](https://github.com/mvdgragt/BEDCourse/tree/week10/TDD) into your project
+3. Install the packages:
+
+   ```bash
+   npm install zod
+   npm install -D vitest typescript
+   ```
+
+4. Add these scripts to `package.json`:
+
+   ```json
+   "scripts": {
+     "test": "vitest",
+     "test:run": "vitest run"
+   }
+   ```
+
+   `npm test` starts **watch mode**: Vitest reruns your tests every time you save. Keep it open while you work.
+
+5. Run `npm run test:run`. All the tests from the lesson should be green before you change anything.
+
+### How to work
+
+- **Test first.** For every new behaviour, write the test, see it fail (red), write just enough code to make it pass (green), then clean up (refactor).
+- **Commit every step.** Use messages like `red: createPizza accepts vegetarian` and `green: createPizza accepts vegetarian`. Your commit history shows that you wrote the test first.
+- **Keep unit and integration tests apart.** Unit tests go in `*.test.ts`, integration tests in `*.integration.test.ts`, the same way as in the lesson.
+- **Answer the questions** marked 💬 in `ANSWERS.md`, in full sentences.
+
+### Two things to know about Zod errors
+
+- When `parse()` fails, Zod throws a `ZodError` with a long message. For those cases, `expect(() => ...).toThrow()` without a message is enough.
+- When **your own code** throws, with `throw new Error("...")`, check the exact message: `toThrow("No copies available")`.
+
+---
+
+## 🟢 Easy
+
+### Exercise 1: A new pizza on the menu
+
+The pizza shop wants to sell a **vegetarian** pizza for **110** kronor.
+
+1. **Red:** in `pizzashop.test.ts`, write a test that `createPizza("vegetarian")` returns `{ type: "vegetarian", price: 110 }`. Run it and see it fail.
+2. **Green:** add `"vegetarian"` to `PizzaTypeSchema`. Run the test again. **Don't add it to the menu yet.**
+3. 💬 The test is still red. Read the error. Which schema stopped it, and why? Your editor probably shows a red line under `menu[pizzaType]`, yet Vitest still ran the code. What does that tell you about TypeScript types versus Zod checks?
+4. Now add `vegetarian: 110` to the menu. Green!
+5. Write one more test: `orderPizza("vegetarian")` returns `true`. Which file does it belong in, and why?
+
+### Exercise 2: Testing `chargeCustomer`
+
+The lesson has no unit tests for `chargeCustomer` yet. Write them in `pizzashop.test.ts`:
+
+- [ ] It returns `true` for a valid order ID and amount, for example `chargeCustomer(42, 100)`
+- [ ] It throws `"Cannot charge the customer without a valid order ID!"` when the order ID is `undefined`
+- [ ] It throws when the order ID is negative (`-1`)
+- [ ] It throws when the order ID isn't a whole number (`12.5`)
+- [ ] It throws when the amount is `0`
+
+One of these tests will fail even though the code "works". Find out why, fix the code, and get it green.
+
+💬 This bug would never have been found without a test. What was it, and what does that tell you about testing error messages?
+
+### Exercise 3: Testing the schemas themselves
+
+Schemas are code too, so they can be tested on their own. Create `schemas.test.ts` and test the schemas from `pizzashop.ts` directly:
+
+- [ ] `PizzaTypeSchema.parse("margherita")` returns `"margherita"`
+- [ ] `PizzaTypeSchema.parse("Margherita")` (capital M) throws
+- [ ] `PizzaSchema.parse({ type: "pepperoni", price: 120 })` returns an equal object (use `toEqual`)
+- [ ] `PizzaSchema.parse({ type: "pepperoni" })` throws, because the price is missing
+- [ ] `AmountSchema.parse("100")` throws. A string is not a number, even if it looks like one
+- [ ] `OrderIdSchema.parse(0)` does **not** throw. Check that it returns `0`
+
+💬 Why use `toEqual` and not `toBe` when you compare objects?
+
+---
+
+## 🟡 Medium
+
+From here on, you build a **library loan system** in a new file, `library.ts`. It follows the same pattern as the pizza shop: small functions, each validated with Zod, and one function that combines them.
+
+### Exercise 4: `findBook`
+
+The library has this catalogue:
+
+```ts
+const catalogue = {
+  dune: { title: "dune", copiesAvailable: 3 },
+  neuromancer: { title: "neuromancer", copiesAvailable: 1 },
+  foundation: { title: "foundation", copiesAvailable: 0 },
+};
 ```
-week8-express-postgres/
-  ├── compose.yml     : your Postgres + pgAdmin containers
-  ├── .env            : your environment variables (NOT on GitHub!)
-  ├── .gitignore      : node_modules and .env
-  ├── package.json    : with "type": "module"
-  ├── init.sql        : all your CREATE TABLE and INSERT statements
-  ├── db.js           : your connection pool
-  ├── index.js        : your Express server and routes
-  └── public/         : (challenge 9) your frontend
-      ├── index.html
-      └── script.js
+
+Create these schemas, and export each one:
+
+- `BookTitleSchema`: one of `"dune"`, `"neuromancer"` or `"foundation"`
+- `BookSchema`: an object with `title` (a `BookTitleSchema`) and `copiesAvailable` (a whole number, 0 or more)
+- `type Book = z.infer<typeof BookSchema>`
+
+Then build `findBook(title: unknown): Book` **test first**, in `library.test.ts`:
+
+- [ ] `findBook("dune")` returns `{ title: "dune", copiesAvailable: 3 }`
+- [ ] `findBook("foundation")` returns the book, even though it has 0 copies. Finding a book and borrowing it are two different things
+- [ ] `findBook("harry potter")` throws
+- [ ] `findBook(42)` throws
+
+> **Hint:** look at how `createPizza` uses `PizzaTypeSchema.parse()` and the menu. `findBook` works the same way.
+
+### Exercise 5: `checkOutBook`
+
+`checkOutBook(book: unknown): number` checks out one copy and returns a **loan ID**.
+
+Rules:
+
+- The input must be a valid `Book` (use `BookSchema.parse`)
+- If `copiesAvailable` is `0`, throw `"No copies available"`
+- Otherwise, return a random whole number between **1000 and 9999** (inclusive)
+
+Tests, written first:
+
+- [ ] It returns a number
+- [ ] The number is a whole number
+- [ ] The number is between 1000 and 9999
+- [ ] It throws `"No copies available"` for `{ title: "foundation", copiesAvailable: 0 }`
+- [ ] It throws for an object without `copiesAvailable`
+
+> **Hint:** `Math.floor(Math.random() * 9000) + 1000` gives a whole number from 1000 to 9999.
+>
+> Notice that the unit tests pass a book object straight into `checkOutBook`. They don't call `findBook`. That's what makes them **unit** tests.
+
+💬 Your "between 1000 and 9999" test uses a random number. Could it pass by luck even if the code were wrong? What could you do to make it more trustworthy?
+
+### Exercise 6: `registerLoan` and `borrowBook`
+
+Create a `LoanSchema`: an object with `loanId` (a positive whole number), `title` (a `BookTitleSchema`) and `memberId` (a positive whole number). Export `type Loan = z.infer<typeof LoanSchema>`.
+
+**Unit tests first**, for `registerLoan(loanId: unknown, title: unknown, memberId: unknown): Loan`:
+
+- [ ] `registerLoan(1234, "dune", 7)` returns `{ loanId: 1234, title: "dune", memberId: 7 }`
+- [ ] It throws when `memberId` is `0`
+- [ ] It throws when the title isn't in the catalogue
+
+Now combine everything. `borrowBook(title: unknown, memberId: unknown): Loan` calls `findBook`, then `checkOutBook`, then `registerLoan`, just like `orderPizza` does.
+
+**Integration tests**, in `library.integration.test.ts`:
+
+- [ ] `borrowBook("dune", 7)` returns a loan with title `"dune"` and member ID `7`
+- [ ] The `loanId` in that loan is a number between 1000 and 9999
+- [ ] `borrowBook("foundation", 7)` throws `"No copies available"`
+- [ ] `borrowBook("dune", -1)` throws
+
+💬 In the `"foundation"` test, the error comes from `checkOutBook`, but you only called `borrowBook`. What does that show you about how errors travel through a chain of functions?
+
+---
+
+## 🔴 Challenging
+
+### Exercise 7: Borrowing limits
+
+Members have a membership level, and the level decides how many books they may have at home:
+
+| Membership | Maximum books on loan |
+| ---------- | --------------------- |
+| `basic`    | 2                     |
+| `premium`  | 5                     |
+
+Create a `MemberSchema` with:
+
+- `id`: a positive whole number
+- `name`: a string that isn't empty
+- `membership`: `"basic"` or `"premium"`
+- `booksOnLoan`: a whole number, 0 or more
+
+> **Hint:** for the name, use `z.string().min(1)`. It works like `z.number().positive()`: a type, plus a rule.
+
+**Step 1:** build `canBorrow(member: unknown): boolean`, test first. It returns `true` if the member is still under their limit.
+
+Test the **boundaries**, like you tested 15 in FizzBuzz:
+
+- [ ] A basic member with 1 book can borrow
+- [ ] A basic member with 2 books can't borrow
+- [ ] A premium member with 4 books can borrow
+- [ ] A premium member with 5 books can't borrow
+- [ ] A member with an empty name throws
+
+**Step 2:** build `borrowWithLimit(title: unknown, member: unknown): Loan`. If `canBorrow` returns `false`, it throws `"Borrowing limit reached"`. Otherwise it calls `borrowBook` with the title and the member's ID.
+
+Integration tests:
+
+- [ ] A basic member with 0 books can borrow `"dune"`. The loan has their member ID
+- [ ] A basic member with 2 books gets `"Borrowing limit reached"`
+- [ ] A premium member with 2 books trying to borrow `"foundation"` gets `"No copies available"`
+
+💬 In the last test, the member is fine, but the book isn't. Which function decides which error the member sees first? Would you want it the other way round?
+
+### Exercise 8: Find the integration bug
+
+A colleague wrote the code for returning books. Create `returns.ts` with this code:
+
+```ts
+import { z } from "zod";
+
+export const LoanSchema = z.object({
+  loanId: z.number().int().positive(),
+  title: z.string().min(1),
+  memberId: z.number().int().positive(),
+});
+
+export type Loan = z.infer<typeof LoanSchema>;
+
+const activeLoans: Loan[] = [
+  { loanId: 1001, title: "dune", memberId: 7 },
+  { loanId: 1002, title: "neuromancer", memberId: 3 },
+];
+
+export const findLoan = (loanId: unknown) => {
+  const id = z.number().int().positive().parse(loanId);
+  const loan = activeLoans.find((l) => l.loanId === id);
+
+  if (!loan) {
+    throw new Error("Loan not found");
+  }
+
+  return { id: loan.loanId, title: loan.title, memberId: loan.memberId };
+};
+
+export const markReturned = (loan: unknown) => {
+  const validLoan = LoanSchema.parse(loan);
+  return { ...validLoan, returned: true };
+};
+
+export const returnBook = (loanId: unknown) => {
+  const loan = findLoan(loanId);
+  return markReturned(loan);
+};
 ```
 
-## Resources
+And `returns.test.ts` with their unit tests:
 
-- Extra Reading:
-  - **node-postgres** (the `pg` package):
-    - Getting started: https://node-postgres.com/
-    - Queries and parameters: https://node-postgres.com/features/queries
-    - Pooling: https://node-postgres.com/features/pooling
-    - Transactions (challenge bonus): https://node-postgres.com/features/transactions
-  - **Express** routing and `req.params` / `req.query` / `req.body`: https://expressjs.com/en/guide/routing.html
-  - **HTTP status codes** (which one should I send?): https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
-  - **SQL injection**, and why we use `$1` instead of putting values straight into the SQL string: https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html
-  - **dotenv**: https://www.npmjs.com/package/dotenv
-  - **PostgreSQL error codes** (useful for medium 6): https://www.postgresql.org/docs/current/errcodes-appendix.html
-- Useful Websites:
-  - https://www.w3schools.com/postgresql/
-  - https://www.postgresql.org/docs/current/
-  - https://hub.docker.com/_/postgres
+```ts
+import { describe, test, expect } from "vitest";
+import { findLoan, markReturned } from "./returns";
 
-**Read before you start:** the node-postgres _Queries_ page and the OWASP SQL injection page. They explain _why_ we write our queries the way we do.
+describe("Returns Unit Tests", () => {
+  test("findLoan finds the loan's title and member", () => {
+    const loan = findLoan(1001);
 
-### Key Concepts
+    expect(loan.title).toBe("dune");
+    expect(loan.memberId).toBe(7);
+  });
 
-```bash
-npm init -y
-npm install express pg dotenv
-docker compose up -d
-node --watch index.ts       # restarts the server automatically when you save!
-```
+  test("findLoan throws for an unknown loan", () => {
+    expect(() => findLoan(9999)).toThrow("Loan not found");
+  });
 
-```js
-// db.js: one shared connection pool for the whole app
-import pg from "pg";
-import dotenv from "dotenv";
+  test("markReturned marks a loan as returned", () => {
+    const result = markReturned({ loanId: 1001, title: "dune", memberId: 7 });
 
-dotenv.config();
-const { Pool } = pg;
-
-export const pool = new Pool({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  database: process.env.DB_DATABASE,
-  password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT,
+    expect(result.returned).toBe(true);
+  });
 });
 ```
 
-```js
-// A parameterized query: values go in the array, NEVER straight into the SQL string
-const result = await pool.query("SELECT * FROM books WHERE id = $1", [id]);
+Your tasks:
 
-result.rows; // an array with all returned rows
-result.rows[0]; // the first row (undefined if there are no rows)
-result.rowCount; // how many rows were returned or changed
-```
+1. Run the unit tests. They're all green.
+2. **Red:** write an integration test in `returns.integration.test.ts`: `returnBook(1001)` returns a loan with `returned: true` and `title: "dune"`. It fails.
+3. Read the Zod error carefully. It tells you exactly which field is the problem. Find the bug.
+4. **Green:** fix the bug.
+5. **Refactor:** give `findLoan` a return type, `(loanId: unknown): Loan => { ... }`. 💬 What does your editor say now if you put the bug back? Which tool would have caught this bug first: TypeScript, Zod, or your tests?
 
-```js
-// Where does the data come from?
-req.params; // /books/:id         → /books/5           → { id: "5" }
-req.query; // /books?genre=drama → { genre: "drama" }
-req.body; // the JSON you send in Insomnia (needs app.use(express.json()))
-```
+💬 Every unit test was green, but the code was broken. Why didn't the unit tests catch it? Look at where each unit test gets its input from.
 
-```
-200 OK            → it worked, here is your data
-201 Created       → a new row was created (use this for POST!)
-400 Bad Request   → the client sent wrong or missing data
-404 Not Found     → that id doesn't exist
-409 Conflict      → that clashes with existing data (e.g. book already borrowed)
-500 Server Error  → something went wrong on our side
-```
+### Exercise 9: Borrowing several books at once
 
-## Skill 1: Setup
+Members want to borrow up to **3 books in one visit**. Build `borrowBooks(titles: unknown, member: unknown): Loan[]`.
 
-Reuse your Docker setup from week 7, **not** the shorter one from the video. Make sure you have:
+Rules:
 
-- A **Postgres** and a **pgAdmin** service, with **volumes** for both
-- `depends_on` on pgAdmin and `restart: unless-stopped` on both
-- All usernames, passwords and ports in `.env`
+- `titles` must be an array of valid book titles, with **at least 1** and **at most 3** titles
+- The member's `booksOnLoan` **plus** the number of titles must not go over their limit from Exercise 7. Otherwise, throw `"Borrowing limit reached"`
+- Each title is borrowed with `borrowBook`, and the function returns all the loans
 
-Your Node app and Docker can share **one** `.env` file. Docker Compose reads `.env` automatically, so you can write:
+> **Hint:** Zod can check arrays too: `z.array(BookTitleSchema).min(1).max(3)`. `.min()` and `.max()` work on arrays the same way `.min(1)` worked on the name string.
+>
+> To borrow every title, you can use `titles.map(...)`.
 
-```yaml
-environment:
-  POSTGRES_USER: ${DB_USER}
-  POSTGRES_PASSWORD: ${DB_PASSWORD}
-  POSTGRES_DB: ${DB_DATABASE}
-```
+**Refactor first:** both `canBorrow` and `borrowBooks` need the limit for a membership level. Move it into its own function, `borrowLimit(membership)`, and use it in `canBorrow`. All your Exercise 7 tests must stay green. That's your safety net doing its job.
 
-```bash
-# .env
-DB_USER=librarian
-DB_PASSWORD=password
-DB_DATABASE=library
-DB_HOST=localhost
-DB_PORT=5432
-PORT=3000
-```
+Then write the tests, red first:
 
-**Why `localhost` in Node, but not in pgAdmin?** Your Node server runs on your laptop, so it reaches Postgres through the port you opened (`localhost:5432`). pgAdmin runs _inside_ Docker, so it reaches Postgres by its service name (e.g. `db`) or by its IP from `docker inspect`.
+**Unit tests**
 
-Then, in pgAdmin, create the `books` table and save the SQL in `init.sql`:
+- [ ] `borrowLimit("basic")` returns 2, and `borrowLimit("premium")` returns 5
 
-```sql
-CREATE TABLE books (
-    id SERIAL PRIMARY KEY,
-    title VARCHAR(100) NOT NULL,
-    genre VARCHAR(50),
-    published_year INT
-);
+**Integration tests**
 
-INSERT INTO books (title, genre, published_year)
-VALUES
-('The Hobbit', 'fantasy', 1937),
-('1984', 'dystopian', 1949),
-('Pippi Longstocking', 'children', 1945),
-('The Hunger Games', 'dystopian', 2008);
-```
+- [ ] A premium member with 0 books borrows `["dune", "neuromancer"]`. The result has 2 loans
+- [ ] The first loan has title `"dune"`, the second `"neuromancer"`
+- [ ] An empty array throws
+- [ ] Four titles throws
+- [ ] A basic member with 1 book borrowing 2 titles gets `"Borrowing limit reached"`
 
-Finally, rebuild the four CRUD routes from the video, but for `books` instead of `athletes`. Test all four in Insomnia before you continue.
+💬 When you refactored `canBorrow`, how did you know you hadn't broken anything?
 
-**Tip:** Don't forget `"type": "module"` in `package.json` and `app.use(express.json())` in `index.js`. In the video, both caused errors when they were missing!
+---
 
-## Skill 2: The Assignments
+## Additional reading
 
-Do the assignments in order; each one builds on the last. For every route you make, create a request for it in **Insomnia** and test both the happy path _and_ the error cases (wrong id, missing data, etc.).
+### Watch and read first
 
-### 🟢 Easy
+- [Integration Testing with the Pizza Shop](https://www.youtube.com/watch?v=Ydlo-f1Mdl4): this week's video.
+- [Lesson code on GitHub](https://github.com/mvdgragt/BEDCourse/tree/week10/TDD): the pizza shop and its tests.
+- [Zod: Basic usage](https://zod.dev/basics): defining a schema, `parse()`, what happens when it fails, and `z.infer`.
 
-**1. Get one book by id**
+### Zod
 
-The video's recap mentions fetching data by id, but we never built it! Create `GET /books/:id`.
+- [Zod: Defining schemas](https://zod.dev/api): all the schema types. Look at the sections on numbers, strings, enums, objects and arrays for this week.
 
-- Return the book as JSON with status `200`
-- Return `404` with a message like `"Book not found"` if the id doesn't exist
-- Test it with an id that exists, one that doesn't (e.g. `999`) and something weird like `/books/abc`. What happens? (You'll fix that in exercise 2.)
+### Vitest
 
-**2. Use the right status codes and validate input**
+- [Vitest: Getting Started](https://vitest.dev/guide/): installing and running Vitest.
+- [Vitest: expect](https://vitest.dev/api/expect): all the matchers, like `toBe`, `toEqual`, `toThrow`, `toBeGreaterThanOrEqual` and `toHaveLength`.
 
-- `POST /books` should return `201 Created` instead of `200`
-- If `title` is missing from the body, return `400` with a clear message _before_ running any SQL
-- If `id` in the URL isn't a number (`/books/abc`), return `400` instead of crashing with a `500`
+### Background
 
-**Hint:** `Number.isInteger(Number(id))` tells you if `id` is a whole number.
+- [The Practical Test Pyramid](https://martinfowler.com/articles/practical-test-pyramid.html) (Martin Fowler's website): why you need both unit tests and integration tests. The first sections are enough.
+- [Write tests. Not too many. Mostly integration.](https://kentcdodds.com/blog/write-tests) (Kent C. Dodds): a short article on why integration tests often give you the most confidence. Good to read after Exercise 8.
 
-**3. Clean up the project structure**
+---
 
-- Move the pool to its own file, `db.js`, and `import { pool } from "./db.js"` in `index.js`
-- Add the missing `port: process.env.DB_PORT` to the pool
-- Read the server port from `.env` (`process.env.PORT`) and use it in `app.listen`
-- Change the "get all" route from `/` to `/books`, so all book routes start with `/books`. Put a welcome message back on `/`.
+## What to hand in
 
-### 🟡 Medium
+Push your `week10` branch with:
 
-**4. Filter and sort with query parameters**
+- [ ] `pizzashop.ts` with the vegetarian pizza and the bug fix from Exercise 2
+- [ ] `pizzashop.test.ts`, `pizzashop.integration.test.ts` and `schemas.test.ts`
+- [ ] `library.ts` with `library.test.ts` and `library.integration.test.ts`
+- [ ] `returns.ts` with the bug fixed, plus `returns.test.ts` and `returns.integration.test.ts`
+- [ ] `ANSWERS.md` with all the 💬 questions answered
+- [ ] A screenshot of `npm run test:run` with all tests green
+- [ ] A commit history that shows your red and green steps
 
-Make `GET /books` support optional query parameters:
-
-- `/books?genre=dystopian` → only dystopian books
-- `/books?sort=published_year` → sorted by year
-- `/books?genre=dystopian&sort=title` → both together!
-- Without any parameters, it should still return all books
-
-**Watch out:** You can use `$1` for _values_ (like the genre), but **not** for column names in `ORDER BY`. Never put `req.query.sort` straight into your SQL string, since that opens the door to SQL injection! Instead, make a list of allowed columns and check against it:
-
-```js
-const allowedSorts = ["title", "published_year", "genre"];
-```
-
-If `sort` is not in the list, return `400`.
-
-**5. Partial updates with PATCH**
-
-With our `PUT` route, if you only send `{ "genre": "classic" }`, the title and year become `NULL`! Create `PATCH /books/:id` that only updates the fields you actually send.
-
-- Sending `{ "genre": "classic" }` changes only the genre
-- Return the updated book, or `404` if it doesn't exist
-- Return `400` if the body is empty
-
-**Hint:** Look up `COALESCE` in PostgreSQL. `SET title = COALESCE($1, title)` means "use the new value, or keep the old one if the new value is `NULL`."
-
-**6. Add authors (one-to-many)**
-
-Just like in the relationships video, one author can write many books, but each book has one author.
-
-- Create an `authors` table (`id`, `name`) and add an `author_id` column to `books` that is a **foreign key** to `authors(id)`. (Look up `ALTER TABLE ... ADD COLUMN`.) Add the SQL to `init.sql`.
-- Create `GET /authors`, `POST /authors` and `GET /authors/:id/books`, which returns all books by that author using a `JOIN`
-- Allow `author_id` in `POST /books`
-- If someone creates a book with an `author_id` that doesn't exist, Postgres throws an error with `err.code === "23503"` (foreign key violation). Catch it and return `400` with a helpful message instead of a `500`.
-
-### 🔴 Challenging
-
-**7. Borrowing books (many-to-many)**
-
-Members can borrow many books, and a book can be borrowed by many members over time. That's a many-to-many relationship, so you need a **junction table**.
-
-- Create a `members` table (`id`, `name`, `email UNIQUE`)
-- Create a `loans` table: `id`, `book_id` (FK), `member_id` (FK), `borrowed_at TIMESTAMP DEFAULT NOW()`, and `returned_at TIMESTAMP` (empty until the book comes back)
-- `POST /members` creates a member. If the email already exists, catch `err.code === "23505"` (unique violation) and return `409`.
-- `POST /loans` with `{ "book_id": 1, "member_id": 2 }` lets a member borrow a book. If that book is already borrowed (a loan with `returned_at IS NULL` exists), return `409 Conflict`.
-- `PATCH /loans/:id/return` sets `returned_at` to `NOW()`
-- `GET /members/:id/loans` returns the member's loans **with the book titles**, joining three tables, just like students → student_courses → courses in the relationships video
-
-**8. Search, pagination and statistics**
-
-Real APIs don't send back 10,000 rows at once.
-
-- `GET /books?search=hun` finds books whose title contains the text, ignoring upper/lower case (look up `ILIKE`)
-- `GET /books?page=2&limit=2` returns only that page (look up `LIMIT` and `OFFSET`). Default to page 1 with 10 books.
-- Change the response so it also tells the client how many results there are in total:
-
-```json
-{
-  "page": 2,
-  "limit": 2,
-  "total": 4,
-  "data": [ ... ]
-}
-```
-
-- Create `GET /stats` that returns the number of books per genre, using `COUNT(*)` and `GROUP BY`. Bonus: also return the author with the most books.
-- Make sure search, filter (from exercise 4) and pagination all work together!
-
-**9. Connect a frontend**
-
-Time to put a real website on your API!
-
-- Add `app.use(express.static("public"))` and create `public/index.html` and `public/script.js`
-- Use `fetch` to show all books on the page, with a form to add a new book and a delete button next to each book
-- Show the error message from your API when something goes wrong (e.g. adding a book without a title)
-- **Bonus:** Make Docker create your tables automatically. Mount your `init.sql` into the Postgres container at `/docker-entrypoint-initdb.d/init.sql`. Note: this only runs when the database volume is **empty**, so you'll need `docker compose down -v` to test it. That **deletes your data!**
-
-**Extra bonus (transactions):** Borrowing a book in exercise 7 is really two steps: checking that the book is available, and creating the loan. What happens if two members borrow the same book at exactly the same time? Read the node-postgres page on transactions and try to make `POST /loans` safe with `BEGIN`, `COMMIT` and `ROLLBACK`.
-
-**Try it yourself first!** Use the extra reading and the class code. If you're stuck for more than 20 minutes, `console.log` everything (`req.body`, `req.params`, `result.rows`, `err.message`), and remember that most bugs in the video were a missing `await`, a typo in `.env` or a server that needed a restart.
-
-## When You Finish
-
-Make sure:
-
-- `init.sql` runs from top to bottom in pgAdmin without errors on an empty database
-- Every route works in Insomnia, including the error cases
-- `.env` and `node_modules` are in `.gitignore`
-
-Push your project to your GitHub repository on the following branch: `week8/express-postgres`
-
-Your submission should include `compose.yml`, `package.json`, `init.sql`, `db.js`, `index.js` and (if you did exercise 9) the `public` folder. In your pull request, write which exercises you completed.
-
-Good luck! Last week your data lived in pgAdmin; this week your own server is the librarian. 📚
+If you get stuck, write down what you tried and where it broke. A test that's still red, with an honest explanation of why, is worth more than a copied solution.
