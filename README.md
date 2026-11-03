@@ -27,7 +27,7 @@ After this assignment you can:
 
 ## Before you start
 
-1. Create a new branch: `week10`
+1. Create a new branch: `week10/TDD`
 2. Copy `pizzashop.ts`, `pizzashop.test.ts` and `pizzashop.integration.test.ts` from the [lesson repository](https://github.com/mvdgragt/BEDCourse/tree/week10/TDD) into your project
 3. Install the packages:
 
