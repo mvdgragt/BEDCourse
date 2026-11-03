@@ -8,7 +8,7 @@ In Cyber Dojo you tested **one function at a time**. In the pizza shop video you
 
 In the lesson code, **Zod** checks every value that goes into a function. If something is wrong, `parse()` throws an error straight away, instead of letting a bad value travel through the whole chain.
 
-This week you'll do both. You start with the pizza shop from the lesson, then you build a small **library loan system**, the same domain as your library project, with Zod and tests from the start.
+In this lesson you'll learn both and do both. You start with the pizza shop from the lesson, then you build a small **library loan system**, the same domain as your library project, with Zod and tests from the start.
 
 ---
 
