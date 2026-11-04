@@ -8,7 +8,7 @@ In Cyber Dojo you tested **one function at a time**. In the pizza shop video you
 
 In the lesson code, **Zod** checks every value that goes into a function. If something is wrong, `parse()` throws an error straight away, instead of letting a bad value travel through the whole chain.
 
-In this lesson you'll learn both and do both. You start with the pizza shop from the lesson, then you build a small **library loan system**, the same domain as your library project, with Zod and tests from the start.
+This week you'll do both. You start with the pizza shop from the lesson, then you build a small **library loan system**, the same domain as your library project, with Zod and tests from the start.
 
 ---
 
@@ -33,28 +33,31 @@ After this assignment you can:
 
    ```bash
    npm install zod
-   npm install -D vitest typescript
+   npm install -D vitest typescript @vitest/coverage-v8
    ```
 
 4. Add these scripts to `package.json`:
 
    ```json
    "scripts": {
-     "test": "vitest",
-     "test:run": "vitest run"
+     "test": "vitest run",
+     "test:watch": "vitest",
+     "test:coverage": "vitest run --coverage"
    }
    ```
 
-   `npm test` starts **watch mode**: Vitest reruns your tests every time you save. Keep it open while you work.
+   - `npm test` runs all tests **once** and stops. This is the command GitHub Actions will use later in this module.
+   - `npm run test:watch` starts **watch mode**: Vitest reruns your tests every time you save. Keep this one open while you work. It makes the red → green loop instant.
+   - `npm run test:coverage` shows which lines of your code your tests actually reach.
 
-5. Run `npm run test:run`. All the tests from the lesson should be green before you change anything.
+5. Run `npm test`. All the tests from the lesson should be green before you change anything.
 
 ### How to work
 
 - **Test first.** For every new behaviour, write the test, see it fail (red), write just enough code to make it pass (green), then clean up (refactor).
 - **Commit every step.** Use messages like `red: createPizza accepts vegetarian` and `green: createPizza accepts vegetarian`. Your commit history shows that you wrote the test first.
 - **Keep unit and integration tests apart.** Unit tests go in `*.test.ts`, integration tests in `*.integration.test.ts`, the same way as in the lesson.
-- **Answer the questions** marked 💬 in `ANSWERS.md`, in full sentences.
+- **Answer every question** marked **Question:** in `ANSWERS.md`, in full sentences.
 
 ### Two things to know about Zod errors
 
@@ -63,7 +66,7 @@ After this assignment you can:
 
 ---
 
-## 🟢 Easy
+## Easy
 
 ### Exercise 1: A new pizza on the menu
 
@@ -71,7 +74,7 @@ The pizza shop wants to sell a **vegetarian** pizza for **110** kronor.
 
 1. **Red:** in `pizzashop.test.ts`, write a test that `createPizza("vegetarian")` returns `{ type: "vegetarian", price: 110 }`. Run it and see it fail.
 2. **Green:** add `"vegetarian"` to `PizzaTypeSchema`. Run the test again. **Don't add it to the menu yet.**
-3. 💬 The test is still red. Read the error. Which schema stopped it, and why? Your editor probably shows a red line under `menu[pizzaType]`, yet Vitest still ran the code. What does that tell you about TypeScript types versus Zod checks?
+3. **Question:** The test is still red. Read the error. Which schema stopped it, and why? Your editor probably shows a red line under `menu[pizzaType]`, yet Vitest still ran the code. What does that tell you about TypeScript types versus Zod checks?
 4. Now add `vegetarian: 110` to the menu. Green!
 5. Write one more test: `orderPizza("vegetarian")` returns `true`. Which file does it belong in, and why?
 
@@ -87,7 +90,7 @@ The lesson has no unit tests for `chargeCustomer` yet. Write them in `pizzashop.
 
 One of these tests will fail even though the code "works". Find out why, fix the code, and get it green.
 
-💬 This bug would never have been found without a test. What was it, and what does that tell you about testing error messages?
+**Question:** This bug would never have been found without a test. What was it, and what does that tell you about testing error messages?
 
 ### Exercise 3: Testing the schemas themselves
 
@@ -100,11 +103,11 @@ Schemas are code too, so they can be tested on their own. Create `schemas.test.t
 - [ ] `AmountSchema.parse("100")` throws. A string is not a number, even if it looks like one
 - [ ] `OrderIdSchema.parse(0)` does **not** throw. Check that it returns `0`
 
-💬 Why use `toEqual` and not `toBe` when you compare objects?
+**Question:** Why use `toEqual` and not `toBe` when you compare objects?
 
 ---
 
-## 🟡 Medium
+## Medium
 
 From here on, you build a **library loan system** in a new file, `library.ts`. It follows the same pattern as the pizza shop: small functions, each validated with Zod, and one function that combines them.
 
@@ -157,7 +160,7 @@ Tests, written first:
 >
 > Notice that the unit tests pass a book object straight into `checkOutBook`. They don't call `findBook`. That's what makes them **unit** tests.
 
-💬 Your "between 1000 and 9999" test uses a random number. Could it pass by luck even if the code were wrong? What could you do to make it more trustworthy?
+**Question:** Your "between 1000 and 9999" test uses a random number. Could it pass by luck even if the code were wrong? What could you do to make it more trustworthy?
 
 ### Exercise 6: `registerLoan` and `borrowBook`
 
@@ -178,11 +181,11 @@ Now combine everything. `borrowBook(title: unknown, memberId: unknown): Loan` ca
 - [ ] `borrowBook("foundation", 7)` throws `"No copies available"`
 - [ ] `borrowBook("dune", -1)` throws
 
-💬 In the `"foundation"` test, the error comes from `checkOutBook`, but you only called `borrowBook`. What does that show you about how errors travel through a chain of functions?
+**Question:** In the `"foundation"` test, the error comes from `checkOutBook`, but you only called `borrowBook`. What does that show you about how errors travel through a chain of functions?
 
 ---
 
-## 🔴 Challenging
+## Challenging
 
 ### Exercise 7: Borrowing limits
 
@@ -220,7 +223,7 @@ Integration tests:
 - [ ] A basic member with 2 books gets `"Borrowing limit reached"`
 - [ ] A premium member with 2 books trying to borrow `"foundation"` gets `"No copies available"`
 
-💬 In the last test, the member is fine, but the book isn't. Which function decides which error the member sees first? Would you want it the other way round?
+**Question:** In the last test, the member is fine, but the book isn't. Which function decides which error the member sees first? Would you want it the other way round?
 
 ### Exercise 8: Find the integration bug
 
@@ -296,9 +299,9 @@ Your tasks:
 2. **Red:** write an integration test in `returns.integration.test.ts`: `returnBook(1001)` returns a loan with `returned: true` and `title: "dune"`. It fails.
 3. Read the Zod error carefully. It tells you exactly which field is the problem. Find the bug.
 4. **Green:** fix the bug.
-5. **Refactor:** give `findLoan` a return type, `(loanId: unknown): Loan => { ... }`. 💬 What does your editor say now if you put the bug back? Which tool would have caught this bug first: TypeScript, Zod, or your tests?
+5. **Refactor:** give `findLoan` a return type, `(loanId: unknown): Loan => { ... }`. **Question:** What does your editor say now if you put the bug back? Which tool would have caught this bug first: TypeScript, Zod, or your tests?
 
-💬 Every unit test was green, but the code was broken. Why didn't the unit tests catch it? Look at where each unit test gets its input from.
+**Question:** Every unit test was green, but the code was broken. Why didn't the unit tests catch it? Look at where each unit test gets its input from.
 
 ### Exercise 9: Borrowing several books at once
 
@@ -330,7 +333,17 @@ Then write the tests, red first:
 - [ ] Four titles throws
 - [ ] A basic member with 1 book borrowing 2 titles gets `"Borrowing limit reached"`
 
-💬 When you refactored `canBorrow`, how did you know you hadn't broken anything?
+**Question:** When you refactored `canBorrow`, how did you know you hadn't broken anything?
+
+---
+
+## Bonus: How much of your code is tested?
+
+Run `npm run test:coverage`. Vitest prints a table showing, for each file, how many of its lines your tests reached.
+
+1. Find one line in `library.ts` that no test reaches. (Coverage often shows that error paths, like a `throw`, are never tested.)
+2. Write a test that reaches it, and run coverage again.
+3. **Question:** Does 100% coverage mean your code has no bugs? Think back to Exercise 8: would coverage have warned you about that bug?
 
 ---
 
@@ -350,6 +363,8 @@ Then write the tests, red first:
 
 - [Vitest: Getting Started](https://vitest.dev/guide/): installing and running Vitest.
 - [Vitest: expect](https://vitest.dev/api/expect): all the matchers, like `toBe`, `toEqual`, `toThrow`, `toBeGreaterThanOrEqual` and `toHaveLength`.
+- [Vitest: Command Line Interface](https://vitest.dev/guide/cli): the difference between `vitest` (watch mode) and `vitest run`.
+- [Vitest: Coverage](https://vitest.dev/guide/coverage): what the coverage table means. Useful for the bonus.
 
 ### Background
 
@@ -366,8 +381,8 @@ Push your `week10` branch with:
 - [ ] `pizzashop.test.ts`, `pizzashop.integration.test.ts` and `schemas.test.ts`
 - [ ] `library.ts` with `library.test.ts` and `library.integration.test.ts`
 - [ ] `returns.ts` with the bug fixed, plus `returns.test.ts` and `returns.integration.test.ts`
-- [ ] `ANSWERS.md` with all the 💬 questions answered
-- [ ] A screenshot of `npm run test:run` with all tests green
+- [ ] `ANSWERS.md` with every **Question:** answered
+- [ ] A screenshot of `npm test` with all tests green
 - [ ] A commit history that shows your red and green steps
 
 If you get stuck, write down what you tried and where it broke. A test that's still red, with an honest explanation of why, is worth more than a copied solution.
