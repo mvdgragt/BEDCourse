@@ -1,14 +1,12 @@
-# Week 10 – Unit Tests, Integration Tests and Zod
+# Week 11 – Catching Bugs in Production with Sentry
 
-**Video:** [Integration Testing with the Pizza Shop](https://www.youtube.com/watch?v=Ydlo-f1Mdl4)
+**Video:** [Find and Fix Bugs with Sentry](https://www.youtube.com/watch?v=ueSddUv8ipk)
 
-**Code from the lesson:** [github.com/mvdgragt/BEDCourse – week10/TDD](https://github.com/mvdgragt/BEDCourse/tree/week10/TDD)
+So far you have caught bugs **before** your code runs: with unit tests, integration tests, and Zod checking every value at the door. But no test suite catches everything. Databases go down, users send input nobody expected, and code that worked yesterday breaks today.
 
-In Cyber Dojo you tested **one function at a time**. In the pizza shop video you saw that this isn't always enough: `createPizza`, `sendOrder` and `chargeCustomer` each worked on their own, but `orderPizza` still broke when they were put together. That's what **integration tests** are for.
+**Sentry** is the emergency call centre for your app. When something breaks, Sentry gets the call: it writes down what happened, where and when, groups the same problems together, and alerts you, ideally before your users notice.
 
-In the lesson code, **Zod** checks every value that goes into a function. If something is wrong, `parse()` throws an error straight away, instead of letting a bad value travel through the whole chain.
-
-This week you'll do both. You start with the pizza shop from the lesson, then you build a small **library loan system**, the same domain as your library project, with Zod and tests from the start.
+This week you add Sentry to your own Express API (the one with Prisma and Winston from the lessons), and you practise being the detective: reading an error report, finding the line that broke, fixing it, and closing the case.
 
 ---
 
@@ -16,334 +14,252 @@ This week you'll do both. You start with the pizza shop from the lesson, then yo
 
 After this assignment you can:
 
-- Explain the difference between a unit test and an integration test
-- Use the red → green → refactor loop with Vitest
-- Write Zod schemas with `z.enum`, `z.object` and `z.number()`, and use `z.infer` to get TypeScript types from them
-- Test that a function throws when it gets bad input
-- Test functions that use random values
-- Find a bug that only shows up when functions work together
+- Explain what error monitoring is, and how it differs from testing and from logging
+- Set up Sentry in an Express app, with the DSN kept in `.env`
+- Send errors to Sentry with `captureException`
+- Add context with breadcrumbs and tags, and use them in the dashboard
+- Decide which errors belong in Sentry and which don't
+- Use a Sentry issue to find, fix and resolve a real bug
 
 ---
 
 ## Before you start
 
-1. Create a new branch: `week10/TDD`
-2. Copy `pizzashop.ts`, `pizzashop.test.ts` and `pizzashop.integration.test.ts` from the [lesson repository](https://github.com/mvdgragt/BEDCourse/tree/week10/TDD) into your project
-3. Install the packages:
-
-   ```bash
-   npm install zod
-   npm install -D vitest typescript @vitest/coverage-v8
-   ```
-
-4. Add these scripts to `package.json`:
-
-   ```json
-   "scripts": {
-     "test": "vitest run",
-     "test:watch": "vitest",
-     "test:coverage": "vitest run --coverage"
-   }
-   ```
-
-   - `npm test` runs all tests **once** and stops. This is the command GitHub Actions will use later in this module.
-   - `npm run test:watch` starts **watch mode**: Vitest reruns your tests every time you save. Keep this one open while you work. It makes the red → green loop instant.
-   - `npm run test:coverage` shows which lines of your code your tests actually reach.
-
-5. Run `npm test`. All the tests from the lesson should be green before you change anything.
+1. Create a new branch: `week11`
+2. Make sure your Express API runs and can talk to the database
+3. Create a free Sentry account at [sentry.io](https://sentry.io). Choose **EU** as the data storage location, like in the video
+4. Create a new project and choose **Express** as the platform
 
 ### How to work
 
-- **Test first.** For every new behaviour, write the test, see it fail (red), write just enough code to make it pass (green), then clean up (refactor).
-- **Commit every step.** Use messages like `red: createPizza accepts vegetarian` and `green: createPizza accepts vegetarian`. Your commit history shows that you wrote the test first.
-- **Keep unit and integration tests apart.** Unit tests go in `*.test.ts`, integration tests in `*.integration.test.ts`, the same way as in the lesson.
+- **Small steps.** Change one thing, trigger an error, check the dashboard. Just like red → green, you want to see each step work before you take the next.
+- **Commit every step**, with clear messages like `add Sentry error handler` or `add breadcrumbs to items routes`.
 - **Answer every question** marked **Question:** in `ANSWERS.md`, in full sentences.
-
-### Two things to know about Zod errors
-
-- When `parse()` fails, Zod throws a `ZodError` with a long message. For those cases, `expect(() => ...).toThrow()` without a message is enough.
-- When **your own code** throws, with `throw new Error("...")`, check the exact message: `toThrow("No copies available")`.
+- **Take screenshots** of the Sentry dashboard where the exercise asks for them, and put them in a `screenshots/` folder.
 
 ---
 
 ## Easy
 
-### Exercise 1: A new pizza on the menu
+### Exercise 1: Install the alarm system
 
-The pizza shop wants to sell a **vegetarian** pizza for **110** kronor.
+1. Install the Sentry SDK:
 
-1. **Red:** in `pizzashop.test.ts`, write a test that `createPizza("vegetarian")` returns `{ type: "vegetarian", price: 110 }`. Run it and see it fail.
-2. **Green:** add `"vegetarian"` to `PizzaTypeSchema`. Run the test again. **Don't add it to the menu yet.**
-3. **Question:** The test is still red. Read the error. Which schema stopped it, and why? Your editor probably shows a red line under `menu[pizzaType]`, yet Vitest still ran the code. What does that tell you about TypeScript types versus Zod checks?
-4. Now add `vegetarian: 110` to the menu. Green!
-5. Write one more test: `orderPizza("vegetarian")` returns `true`. Which file does it belong in, and why?
+   ```bash
+   npm install @sentry/node
+   ```
 
-### Exercise 2: Testing `chargeCustomer`
+2. Create `instrument.js` (or `instrument.ts`) and initialise Sentry. The DSN must come from your `.env` file, **not** be written in the code:
 
-The lesson has no unit tests for `chargeCustomer` yet. Write them in `pizzashop.test.ts`:
+   ```js
+   import "dotenv/config";
+   import * as Sentry from "@sentry/node";
 
-- [ ] It returns `true` for a valid order ID and amount, for example `chargeCustomer(42, 100)`
-- [ ] It throws `"Cannot charge the customer without a valid order ID!"` when the order ID is `undefined`
-- [ ] It throws when the order ID is negative (`-1`)
-- [ ] It throws when the order ID isn't a whole number (`12.5`)
-- [ ] It throws when the amount is `0`
+   Sentry.init({
+     dsn: process.env.SENTRY_DSN,
+   });
+   ```
 
-One of these tests will fail even though the code "works". Find out why, fix the code, and get it green.
+3. Add `SENTRY_DSN=...` to your `.env` file. Check that `.env` is in `.gitignore`.
+4. Add `SENTRY_DSN=` (with no value) to a `.env.example` file, so your teammates know the variable exists.
+5. Import `instrument.js` on the **very first line** of `index.ts`, before Express and everything else.
 
-**Question:** This bug would never have been found without a test. What was it, and what does that tell you about testing error messages?
+> In the video, Sentry didn't receive anything at first because of two small mistakes: the `.env` file wasn't loaded, and the variable was spelled `DNS` instead of `DSN`. That's why `instrument.js` loads `dotenv/config` itself. If nothing arrives in your dashboard, check the spelling first.
 
-### Exercise 3: Testing the schemas themselves
+**Question:** Why must `instrument.js` be imported before everything else?
 
-Schemas are code too, so they can be tested on their own. Create `schemas.test.ts` and test the schemas from `pizzashop.ts` directly:
+**Question:** Why do we keep the DSN in `.env` instead of in the code?
 
-- [ ] `PizzaTypeSchema.parse("margherita")` returns `"margherita"`
-- [ ] `PizzaTypeSchema.parse("Margherita")` (capital M) throws
-- [ ] `PizzaSchema.parse({ type: "pepperoni", price: 120 })` returns an equal object (use `toEqual`)
-- [ ] `PizzaSchema.parse({ type: "pepperoni" })` throws, because the price is missing
-- [ ] `AmountSchema.parse("100")` throws. A string is not a number, even if it looks like one
-- [ ] `OrderIdSchema.parse(0)` does **not** throw. Check that it returns `0`
+### Exercise 2: Your first error report
 
-**Question:** Why use `toEqual` and not `toBe` when you compare objects?
+1. Add a test route to your app:
+
+   ```js
+   app.get("/debug-sentry", (req, res) => {
+     throw new Error("My first Sentry error!");
+   });
+   ```
+
+2. Add the Sentry error handler **after all your routes**:
+
+   ```js
+   Sentry.setupExpressErrorHandler(app);
+   ```
+
+3. Start your server and open `http://localhost:3000/debug-sentry` in the browser or in Insomnia.
+4. Find the error in your Sentry dashboard. Take a screenshot.
+5. Open the issue and find:
+   - the file and line number where the error was thrown
+   - your Node.js version
+   - your operating system
+   - the environment
+
+**Question:** You didn't add any extra information to this error yourself. List everything Sentry recorded anyway.
+
+### Exercise 3: Order matters
+
+In the video, the Sentry error handler had to go **after** all the routes, but **before** any other error middleware. Find out why, by breaking it on purpose:
+
+1. Move `Sentry.setupExpressErrorHandler(app)` so it's **above** your routes.
+2. Visit `/debug-sentry` again. Does a new event arrive in Sentry?
+3. Move the handler back to its correct place, and check that events arrive again.
+
+**Question:** What happened when the handler was above the routes, and why? (Think about the order in which Express runs middleware.)
 
 ---
 
 ## Medium
 
-From here on, you build a **library loan system** in a new file, `library.ts`. It follows the same pattern as the pizza shop: small functions, each validated with Zod, and one function that combines them.
+### Exercise 4: Catch the errors you already catch
 
-### Exercise 4: `findBook`
+Most of your routes have a `try/catch`, like the `GET /items` route in the video. When an error is caught there, your route sends a response itself, so the error never reaches Sentry's error handler.
 
-The library has this catalogue:
+1. Add `Sentry.captureException(error)` to the `catch` block of **every route** that talks to the database.
+2. Break the database connection on purpose, for example by changing one letter of the database password in `.env`, like in the video.
+3. Call each route in Insomnia. Check that every route shows up in Sentry.
+4. Fix the password. Check that the routes work again, then mark the issues as **Resolved** in the dashboard. Take a screenshot.
 
-```ts
-const catalogue = {
-  dune: { title: "dune", copiesAvailable: 3 },
-  neuromancer: { title: "neuromancer", copiesAvailable: 1 },
-  foundation: { title: "foundation", copiesAvailable: 0 },
-};
-```
+**Question:** Why didn't the errors inside your `try/catch` reach `setupExpressErrorHandler` by themselves?
 
-Create these schemas, and export each one:
+**Question:** Several requests failed for the same reason. Did Sentry show them as separate issues, or group them? Why is that useful?
 
-- `BookTitleSchema`: one of `"dune"`, `"neuromancer"` or `"foundation"`
-- `BookSchema`: an object with `title` (a `BookTitleSchema`) and `copiesAvailable` (a whole number, 0 or more)
-- `type Book = z.infer<typeof BookSchema>`
+### Exercise 5: Breadcrumbs and tags
 
-Then build `findBook(title: unknown): Book` **test first**, in `library.test.ts`:
+The video compared **breadcrumbs** to little notes that tell the story before the crash, and **tags** to stickers you can filter on later.
 
-- [ ] `findBook("dune")` returns `{ title: "dune", copiesAvailable: 3 }`
-- [ ] `findBook("foundation")` returns the book, even though it has 0 copies. Finding a book and borrowing it are two different things
-- [ ] `findBook("harry potter")` throws
-- [ ] `findBook(42)` throws
+In each database route:
 
-> **Hint:** look at how `createPizza` uses `PizzaTypeSchema.parse()` and the menu. `findBook` works the same way.
+1. Add a breadcrumb at the start of the route:
 
-### Exercise 5: `checkOutBook`
+   ```js
+   Sentry.addBreadcrumb({
+     message: "Fetch items route",
+     level: "info",
+   });
+   ```
 
-`checkOutBook(book: unknown): number` checks out one copy and returns a **loan ID**.
+2. Add a tag that says which part of the app it is:
 
-Rules:
+   ```js
+   Sentry.setTag("feature", "items");
+   ```
 
-- The input must be a valid `Book` (use `BookSchema.parse`)
-- If `copiesAvailable` is `0`, throw `"No copies available"`
-- Otherwise, return a random whole number between **1000 and 9999** (inclusive)
+   Use a different `feature` value for each group of routes, for example `items`, `users` or `orders`.
 
-Tests, written first:
+3. Break the database connection again, and call routes from at least **two different features**.
+4. Open an issue and find your breadcrumb and your tag. Take a screenshot.
+5. In the Issues search bar, filter on one feature, for example `feature:items`. Take a screenshot.
 
-- [ ] It returns a number
-- [ ] The number is a whole number
-- [ ] The number is between 1000 and 9999
-- [ ] It throws `"No copies available"` for `{ title: "foundation", copiesAvailable: 0 }`
-- [ ] It throws for an object without `copiesAvailable`
+**Question:** Explain the difference between a breadcrumb and a tag in your own words. Give one example of when each one would help your team.
 
-> **Hint:** `Math.floor(Math.random() * 9000) + 1000` gives a whole number from 1000 to 9999.
->
-> Notice that the unit tests pass a book object straight into `checkOutBook`. They don't call `findBook`. That's what makes them **unit** tests.
+### Exercise 6: One helper instead of copy-paste
 
-**Question:** Your "between 1000 and 9999" test uses a random number. Could it pass by luck even if the code were wrong? What could you do to make it more trustworthy?
+By now, every `catch` block probably looks almost the same: set a tag, send to Sentry, log with Winston, send a 500 response. That's a lot of copy-paste, and copy-paste is where bugs hide.
 
-### Exercise 6: `registerLoan` and `borrowBook`
+1. Create a helper function, for example in `utils/reportError.js`:
 
-Create a `LoanSchema`: an object with `loanId` (a positive whole number), `title` (a `BookTitleSchema`) and `memberId` (a positive whole number). Export `type Loan = z.infer<typeof LoanSchema>`.
+   ```js
+   export const reportError = (error, feature) => {
+     // set the tag, capture the exception, and log it with Winston
+   };
+   ```
 
-**Unit tests first**, for `registerLoan(loanId: unknown, title: unknown, memberId: unknown): Loan`:
+2. **Refactor:** replace the repeated code in every `catch` block with a call to `reportError(error, "items")`.
+3. Break the database connection once more, and check that Sentry and Winston still receive everything, with the right tags.
 
-- [ ] `registerLoan(1234, "dune", 7)` returns `{ loanId: 1234, title: "dune", memberId: 7 }`
-- [ ] It throws when `memberId` is `0`
-- [ ] It throws when the title isn't in the catalogue
-
-Now combine everything. `borrowBook(title: unknown, memberId: unknown): Loan` calls `findBook`, then `checkOutBook`, then `registerLoan`, just like `orderPizza` does.
-
-**Integration tests**, in `library.integration.test.ts`:
-
-- [ ] `borrowBook("dune", 7)` returns a loan with title `"dune"` and member ID `7`
-- [ ] The `loanId` in that loan is a number between 1000 and 9999
-- [ ] `borrowBook("foundation", 7)` throws `"No copies available"`
-- [ ] `borrowBook("dune", -1)` throws
-
-**Question:** In the `"foundation"` test, the error comes from `checkOutBook`, but you only called `borrowBook`. What does that show you about how errors travel through a chain of functions?
+**Question:** You now send each error to both Winston and Sentry. What does each tool give you that the other doesn't?
 
 ---
 
 ## Challenging
 
-### Exercise 7: Borrowing limits
+### Exercise 7: Not every error belongs in Sentry
 
-Members have a membership level, and the level decides how many books they may have at home:
+Last week you used Zod to check input. When a user sends a bad request body, that's **the user's mistake**, not a bug in your code. If every bad request ended up in Sentry, the real bugs would drown in the noise.
 
-| Membership | Maximum books on loan |
-| ---------- | --------------------- |
-| `basic`    | 2                     |
-| `premium`  | 5                     |
+1. Add a Zod schema to one of your `POST` routes, for example `POST /items`.
+2. In the `catch` block, check what kind of error it is:
+   - A `ZodError` returns status **400** with a clear message, and is **not** sent to Sentry
+   - Any other error returns status **500** and **is** sent to Sentry with `reportError`
 
-Create a `MemberSchema` with:
+   > **Hint:** `import { ZodError } from "zod";` and then `if (error instanceof ZodError) { ... }`.
 
-- `id`: a positive whole number
-- `name`: a string that isn't empty
-- `membership`: `"basic"` or `"premium"`
-- `booksOnLoan`: a whole number, 0 or more
+3. Test both paths:
+   - Send an invalid body. You get a 400, and **nothing** new appears in Sentry
+   - Break the database connection and send a valid body. You get a 500, and the error **does** appear in Sentry
 
-> **Hint:** for the name, use `z.string().min(1)`. It works like `z.number().positive()`: a type, plus a rule.
+**Question:** Why is it a problem if Sentry fills up with errors that aren't bugs? Think about what happens when you get 200 alert emails a day.
 
-**Step 1:** build `canBorrow(member: unknown): boolean`, test first. It returns `true` if the member is still under their limit.
+**Question:** Name one other kind of error that shouldn't go to Sentry, and one that always should.
 
-Test the **boundaries**, like you tested 15 in FizzBuzz:
+### Exercise 8: Development or production?
 
-- [ ] A basic member with 1 book can borrow
-- [ ] A basic member with 2 books can't borrow
-- [ ] A premium member with 4 books can borrow
-- [ ] A premium member with 5 books can't borrow
-- [ ] A member with an empty name throws
+Your errors from testing on your own laptop shouldn't mix with errors from real users.
 
-**Step 2:** build `borrowWithLimit(title: unknown, member: unknown): Loan`. If `canBorrow` returns `false`, it throws `"Borrowing limit reached"`. Otherwise it calls `borrowBook` with the title and the member's ID.
+1. Add an `environment` to `Sentry.init`:
 
-Integration tests:
+   ```js
+   Sentry.init({
+     dsn: process.env.SENTRY_DSN,
+     environment: process.env.NODE_ENV || "development",
+   });
+   ```
 
-- [ ] A basic member with 0 books can borrow `"dune"`. The loan has their member ID
-- [ ] A basic member with 2 books gets `"Borrowing limit reached"`
-- [ ] A premium member with 2 books trying to borrow `"foundation"` gets `"No copies available"`
+2. Trigger an error with `NODE_ENV=development`, then one with `NODE_ENV=production`.
+3. In the dashboard, filter the issues by environment. Take a screenshot.
+4. The `/debug-sentry` route shouldn't exist in production. Make sure it's only added when the environment is **not** production.
 
-**Question:** In the last test, the member is fine, but the book isn't. Which function decides which error the member sees first? Would you want it the other way round?
+**Question:** Why would a team want to see development and production errors separately?
 
-### Exercise 8: Find the integration bug
+**Question:** What could go wrong if `/debug-sentry` were left open in production?
 
-A colleague wrote the code for returning books. Create `returns.ts` with this code:
+### Exercise 9: Be the detective
+
+Add this route to your app. Change `item` and `name` to match your own Prisma model if needed.
 
 ```ts
-import { z } from "zod";
+app.get("/items/:id", async (req, res) => {
+  Sentry.addBreadcrumb({
+    message: `Fetch item ${req.params.id}`,
+    level: "info",
+  });
 
-export const LoanSchema = z.object({
-  loanId: z.number().int().positive(),
-  title: z.string().min(1),
-  memberId: z.number().int().positive(),
-});
+  try {
+    const item = await prisma.item.findUnique({
+      where: { id: Number(req.params.id) },
+    });
 
-export type Loan = z.infer<typeof LoanSchema>;
-
-const activeLoans: Loan[] = [
-  { loanId: 1001, title: "dune", memberId: 7 },
-  { loanId: 1002, title: "neuromancer", memberId: 3 },
-];
-
-export const findLoan = (loanId: unknown) => {
-  const id = z.number().int().positive().parse(loanId);
-  const loan = activeLoans.find((l) => l.loanId === id);
-
-  if (!loan) {
-    throw new Error("Loan not found");
+    res.json({ ...item, name: item.name.toUpperCase() });
+  } catch (error) {
+    reportError(error, "items");
+    res.status(500).json({ error: "Something went wrong" });
   }
-
-  return { id: loan.loanId, title: loan.title, memberId: loan.memberId };
-};
-
-export const markReturned = (loan: unknown) => {
-  const validLoan = LoanSchema.parse(loan);
-  return { ...validLoan, returned: true };
-};
-
-export const returnBook = (loanId: unknown) => {
-  const loan = findLoan(loanId);
-  return markReturned(loan);
-};
-```
-
-And `returns.test.ts` with their unit tests:
-
-```ts
-import { describe, test, expect } from "vitest";
-import { findLoan, markReturned } from "./returns";
-
-describe("Returns Unit Tests", () => {
-  test("findLoan finds the loan's title and member", () => {
-    const loan = findLoan(1001);
-
-    expect(loan.title).toBe("dune");
-    expect(loan.memberId).toBe(7);
-  });
-
-  test("findLoan throws for an unknown loan", () => {
-    expect(() => findLoan(9999)).toThrow("Loan not found");
-  });
-
-  test("markReturned marks a loan as returned", () => {
-    const result = markReturned({ loanId: 1001, title: "dune", memberId: 7 });
-
-    expect(result.returned).toBe(true);
-  });
 });
 ```
 
-Your tasks:
+It works for every item that exists. Your job is to find out what happens otherwise, **using only Sentry**.
 
-1. Run the unit tests. They're all green.
-2. **Red:** write an integration test in `returns.integration.test.ts`: `returnBook(1001)` returns a loan with `returned: true` and `title: "dune"`. It fails.
-3. Read the Zod error carefully. It tells you exactly which field is the problem. Find the bug.
-4. **Green:** fix the bug.
-5. **Refactor:** give `findLoan` a return type, `(loanId: unknown): Loan => { ... }`. **Question:** What does your editor say now if you put the bug back? Which tool would have caught this bug first: TypeScript, Zod, or your tests?
+1. Call the route with an ID that exists. It works.
+2. Call it with an ID that doesn't exist, for example `999999`. You get a 500.
+3. **Don't look at the code yet.** Open the issue in Sentry. Use the error message, the stack trace and the breadcrumb to work out:
+   - which line broke
+   - what the error message means
+   - which ID caused it
+4. Fix the route. A missing item should return **404** with a clear message, not a 500. And since a missing item isn't a bug, it shouldn't go to Sentry either.
+5. Also call the route with `/items/abc`. What happens? Use what you learned in Exercise 7 to make it return a **400** instead.
 
-**Question:** Every unit test was green, but the code was broken. Why didn't the unit tests catch it? Look at where each unit test gets its input from.
+   > **Hint:** `z.number().int().positive().parse(Number(req.params.id))` throws a `ZodError` when the ID isn't a positive whole number.
 
-### Exercise 9: Borrowing several books at once
+6. Check that all three cases work: an existing ID returns 200, a missing ID returns 404, and `abc` returns 400. Then mark the issue as **Resolved** in Sentry.
 
-Members want to borrow up to **3 books in one visit**. Build `borrowBooks(titles: unknown, member: unknown): Loan[]`.
+**Question:** Write a short incident report in `ANSWERS.md`, with four parts:
 
-Rules:
+- **What happened:** what the user did, and what they saw
+- **How Sentry helped:** which information in the issue pointed you to the bug
+- **The fix:** what you changed, and why
+- **Prevention:** how could you have caught this bug before it reached Sentry? Think back to the last few weeks.
 
-- `titles` must be an array of valid book titles, with **at least 1** and **at most 3** titles
-- The member's `booksOnLoan` **plus** the number of titles must not go over their limit from Exercise 7. Otherwise, throw `"Borrowing limit reached"`
-- Each title is borrowed with `borrowBook`, and the function returns all the loans
-
-> **Hint:** Zod can check arrays too: `z.array(BookTitleSchema).min(1).max(3)`. `.min()` and `.max()` work on arrays the same way `.min(1)` worked on the name string.
->
-> To borrow every title, you can use `titles.map(...)`.
-
-**Refactor first:** both `canBorrow` and `borrowBooks` need the limit for a membership level. Move it into its own function, `borrowLimit(membership)`, and use it in `canBorrow`. All your Exercise 7 tests must stay green. That's your safety net doing its job.
-
-Then write the tests, red first:
-
-**Unit tests**
-
-- [ ] `borrowLimit("basic")` returns 2, and `borrowLimit("premium")` returns 5
-
-**Integration tests**
-
-- [ ] A premium member with 0 books borrows `["dune", "neuromancer"]`. The result has 2 loans
-- [ ] The first loan has title `"dune"`, the second `"neuromancer"`
-- [ ] An empty array throws
-- [ ] Four titles throws
-- [ ] A basic member with 1 book borrowing 2 titles gets `"Borrowing limit reached"`
-
-**Question:** When you refactored `canBorrow`, how did you know you hadn't broken anything?
-
----
-
-## Bonus: How much of your code is tested?
-
-Run `npm run test:coverage`. Vitest prints a table showing, for each file, how many of its lines your tests reached.
-
-1. Find one line in `library.ts` that no test reaches. (Coverage often shows that error paths, like a `throw`, are never tested.)
-2. Write a test that reaches it, and run coverage again.
-3. **Question:** Does 100% coverage mean your code has no bugs? Think back to Exercise 8: would coverage have warned you about that bug?
+> **Good to know:** your editor may show a warning under `item.name`, saying that `item` is possibly `null`. That warning is a clue! Like last week, TypeScript warned you while writing the code, but the code still ran. Sentry caught the error at runtime.
 
 ---
 
@@ -351,38 +267,34 @@ Run `npm run test:coverage`. Vitest prints a table showing, for each file, how m
 
 ### Watch and read first
 
-- [Integration Testing with the Pizza Shop](https://www.youtube.com/watch?v=Ydlo-f1Mdl4): this week's video.
-- [Lesson code on GitHub](https://github.com/mvdgragt/BEDCourse/tree/week10/TDD): the pizza shop and its tests.
-- [Zod: Basic usage](https://zod.dev/basics): defining a schema, `parse()`, what happens when it fails, and `z.infer`.
+- [Find and Fix Bugs with Sentry](https://www.youtube.com/watch?v=ueSddUv8ipk): this week's video.
+- [Sentry for Express](https://docs.sentry.io/platforms/javascript/guides/express/): the official setup guide, including `instrument.js` and `setupExpressErrorHandler`.
 
-### Zod
+### Read for the exercises
 
-- [Zod: Defining schemas](https://zod.dev/api): all the schema types. Look at the sections on numbers, strings, enums, objects and arrays for this week.
-
-### Vitest
-
-- [Vitest: Getting Started](https://vitest.dev/guide/): installing and running Vitest.
-- [Vitest: expect](https://vitest.dev/api/expect): all the matchers, like `toBe`, `toEqual`, `toThrow`, `toBeGreaterThanOrEqual` and `toHaveLength`.
-- [Vitest: Command Line Interface](https://vitest.dev/guide/cli): the difference between `vitest` (watch mode) and `vitest run`.
-- [Vitest: Coverage](https://vitest.dev/guide/coverage): what the coverage table means. Useful for the bonus.
+- [Capturing errors](https://docs.sentry.io/platforms/javascript/guides/express/usage/): `captureException` and `captureMessage`. Useful for Exercise 4.
+- [Breadcrumbs](https://docs.sentry.io/platforms/javascript/guides/express/enriching-events/breadcrumbs/): what breadcrumbs are and which ones Sentry adds by itself. Useful for Exercise 5.
+- [Tags](https://docs.sentry.io/platforms/javascript/guides/express/enriching-events/tags/): adding tags and searching on them. Useful for Exercise 5.
+- [Environments](https://docs.sentry.io/platforms/javascript/guides/express/configuration/environments/): separating development and production. Useful for Exercise 8.
 
 ### Background
 
-- [The Practical Test Pyramid](https://martinfowler.com/articles/practical-test-pyramid.html) (Martin Fowler's website): why you need both unit tests and integration tests. The first sections are enough.
-- [Write tests. Not too many. Mostly integration.](https://kentcdodds.com/blog/write-tests) (Kent C. Dodds): a short article on why integration tests often give you the most confidence. Good to read after Exercise 8.
+- [DSN explainer](https://docs.sentry.io/concepts/key-terms/dsn-explainer/): what the DSN is, and what it can and can't be used for.
+- [ES modules setup](https://docs.sentry.io/platforms/javascript/guides/express/install/esm/): if you use `import` syntax, Sentry recommends loading `instrument.js` with Node's `--import` flag. Importing it on the first line, as in the video, is enough for catching errors. If you see a warning that Express is "not instrumented", this page explains why.
 
 ---
 
 ## What to hand in
 
-Push your `week10` branch with:
+Push your `week11` branch with:
 
-- [ ] `pizzashop.ts` with the vegetarian pizza and the bug fix from Exercise 2
-- [ ] `pizzashop.test.ts`, `pizzashop.integration.test.ts` and `schemas.test.ts`
-- [ ] `library.ts` with `library.test.ts` and `library.integration.test.ts`
-- [ ] `returns.ts` with the bug fixed, plus `returns.test.ts` and `returns.integration.test.ts`
-- [ ] `ANSWERS.md` with every **Question:** answered
-- [ ] A screenshot of `npm test` with all tests green
-- [ ] A commit history that shows your red and green steps
+- [ ] `instrument.js` that reads the DSN from `.env`
+- [ ] `.env.example` with `SENTRY_DSN=` and **no** real `.env` in the repository
+- [ ] `setupExpressErrorHandler` after all routes
+- [ ] `utils/reportError.js` used in every `catch` block
+- [ ] The Zod check from Exercise 7 and the fixed `/items/:id` route from Exercise 9
+- [ ] `ANSWERS.md` with every **Question:** answered, including the incident report
+- [ ] A `screenshots/` folder with the screenshots from Exercises 2, 4, 5 and 8
+- [ ] A commit history with small, clear steps
 
-If you get stuck, write down what you tried and where it broke. A test that's still red, with an honest explanation of why, is worth more than a copied solution.
+If you get stuck, write down what you tried and where it broke. An honest "I got stuck here" is worth more than a copied solution.
