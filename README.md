@@ -154,20 +154,20 @@ In each database route:
 
 ### Exercise 6: One helper instead of copy-paste
 
-By now, every `catch` block probably looks almost the same: set a tag, send to Sentry, log with Winston, send a 500 response. That's a lot of copy-paste, and copy-paste is where bugs hide.
+By now, every `catch` block probably looks almost the same: set a tag, send to Sentry, send a 500 response. That's a lot of copy-paste, and copy-paste is where bugs hide.
 
 1. Create a helper function, for example in `utils/reportError.js`:
 
    ```js
    export const reportError = (error, feature) => {
-     // set the tag, capture the exception, and log it with Winston
+     // set the tag and capture the exception
    };
    ```
 
 2. **Refactor:** replace the repeated code in every `catch` block with a call to `reportError(error, "items")`.
-3. Break the database connection once more, and check that Sentry and Winston still receive everything, with the right tags.
+3. Break the database connection once more, and check that Sentry still receives everything, with the right tags.
 
-**Question:** You now send each error to both Winston and Sentry. What does each tool give you that the other doesn't?
+**Question:** You now send each error to Sentry. What does each tool give you that the other doesn't?
 
 ---
 
