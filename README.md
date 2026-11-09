@@ -6,7 +6,7 @@ So far you have caught bugs **before** your code runs: with unit tests, integrat
 
 **Sentry** is the emergency call centre for your app. When something breaks, Sentry gets the call: it writes down what happened, where and when, groups the same problems together, and alerts you, ideally before your users notice.
 
-This week you add Sentry to your own Express API (the one with Prisma and Winston from the lessons), and you practise being the detective: reading an error report, finding the line that broke, fixing it, and closing the case.
+This week you add Sentry to your own Express API, and you practise being the detective: reading an error report, finding the line that broke, fixing it, and closing the case.
 
 ---
 
@@ -25,7 +25,7 @@ After this assignment you can:
 
 ## Before you start
 
-1. Create a new branch: `week11`
+1. Create a new branch: `week11/sentry`
 2. Make sure your Express API runs and can talk to the database
 3. Create a free Sentry account at [sentry.io](https://sentry.io). Choose **EU** as the data storage location, like in the video
 4. Create a new project and choose **Express** as the platform
