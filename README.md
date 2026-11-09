@@ -6,7 +6,7 @@ So far you have caught bugs **before** your code runs: with unit tests, integrat
 
 **Sentry** is the emergency call centre for your app. When something breaks, Sentry gets the call: it writes down what happened, where and when, groups the same problems together, and alerts you, ideally before your users notice.
 
-This week you add Sentry to your own Express API, and you practise being the detective: reading an error report, finding the line that broke, fixing it, and closing the case.
+This week you add Sentry to your own Express API from branch: week10/sequelize, and you practise being the detective: reading an error report, finding the line that broke, fixing it, and closing the case.
 
 ---
 
