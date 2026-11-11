@@ -1,12 +1,16 @@
-# Week 11 – Catching Bugs in Production with Sentry
+# Week 11 – Code Quality with SonarQube
 
-**Video:** [Find and Fix Bugs with Sentry](https://www.youtube.com/watch?v=ueSddUv8ipk)
+**Video:** [Setting up SonarQube for a TypeScript project](https://youtu.be/VTl0PDGb214)
 
-So far you have caught bugs **before** your code runs: with unit tests, integration tests, and Zod checking every value at the door. But no test suite catches everything. Databases go down, users send input nobody expected, and code that worked yesterday breaks today.
+Over the last weeks you have built a whole safety system around your code:
 
-**Sentry** is the emergency call centre for your app. When something breaks, Sentry gets the call: it writes down what happened, where and when, groups the same problems together, and alerts you, ideally before your users notice.
+- **Tests** check that your code does what it should
+- **Zod** checks every value that comes in
+- **Sentry** tells you when something breaks in a running app
 
-This week you add Sentry to your own Express API from branch: week10/sequelize, and you practise being the detective: reading an error report, finding the line that broke, fixing it, and closing the case.
+But some problems don't break anything, at least not yet: a secret in the wrong file, code that's hard to read, a promise chain that hides an error, a function nobody tests. **SonarQube** finds these by _reading_ your code, without running it. That's called **static code analysis**.
+
+This week you run SonarQube in Docker, scan your own Express API, and work through the issues it finds, the same way you worked through Sentry issues last week.
 
 ---
 
@@ -14,252 +18,278 @@ This week you add Sentry to your own Express API from branch: week10/sequelize, 
 
 After this assignment you can:
 
-- Explain what error monitoring is, and how it differs from testing and from logging
-- Set up Sentry in an Express app, with the DSN kept in `.env`
-- Send errors to Sentry with `captureException`
-- Add context with breadcrumbs and tags, and use them in the dashboard
-- Decide which errors belong in Sentry and which don't
-- Use a Sentry issue to find, fix and resolve a real bug
+- Explain what static code analysis is, and how it differs from testing and from error monitoring
+- Run SonarQube in Docker with Docker Compose
+- Scan a TypeScript project and read the results
+- Keep tokens out of your code and your `package.json`
+- Fix issues one at a time, with your tests as a safety net
+- Show your Vitest test coverage in SonarQube
+- Explain what a quality gate is, and make your project pass one
 
 ---
 
 ## Before you start
 
-1. Create a new branch: `week11/sentry`
-2. Make sure your Express API runs and can talk to the database
-3. Create a free Sentry account at [sentry.io](https://sentry.io). Choose **EU** as the data storage location, like in the video
-4. Create a new project and choose **Express** as the platform
+1. Create a new branch: `week11/sonarqube`
+2. Make sure your Express API from the Sentry week runs, and that `npm test` is green
+3. Start **Docker Desktop**
 
 ### How to work
 
-- **Small steps.** Change one thing, trigger an error, check the dashboard. Just like red → green, you want to see each step work before you take the next.
-- **Commit every step**, with clear messages like `add Sentry error handler` or `add breadcrumbs to items routes`.
+- **One issue, one fix, one commit.** Use the issue's rule as the commit message, for example `fix: prefer top-level await over promise chain`.
+- **Run your tests after every fix.** SonarQube tells you what to change. Your tests tell you whether you broke something while changing it.
 - **Answer every question** marked **Question:** in `ANSWERS.md`, in full sentences.
-- **Take screenshots** of the Sentry dashboard where the exercise asks for them, and put them in a `screenshots/` folder.
+- **Take screenshots** of the SonarQube dashboard where the exercise asks for them, and put them in a `screenshots/` folder.
 
 ---
 
 ## Easy
 
-### Exercise 1: Install the alarm system
+### Exercise 1: SonarQube in Docker
 
-1. Install the Sentry SDK:
+1. Create `compose.yml` in your project:
+
+   ```yaml
+   services:
+     sonarqube:
+       image: sonarqube
+       container_name: my-sonarqube
+       ports:
+         - "9000:9000"
+       volumes:
+         - sonarqube_data:/opt/sonarqube/data
+
+   volumes:
+     sonarqube_data:
+   ```
+
+   The `volumes` part is new compared to the video. It stores SonarQube's data outside the container, so your projects and your new password survive when the container is removed and started again. You'll be working on this for several days, so you'll want that.
+
+2. Start it in the background:
 
    ```bash
-   npm install @sentry/node
+   docker compose up -d
    ```
 
-2. Create `instrument.js` (or `instrument.ts`) and initialise Sentry. The DSN must come from your `.env` file, **not** be written in the code:
+   `-d` means **detached**: the container runs in the background, and your terminal stays free.
 
-   ```js
-   import "dotenv/config";
-   import * as Sentry from "@sentry/node";
+3. Check that it runs with `docker ps`.
+4. Open [http://localhost:9000](http://localhost:9000). SonarQube takes a minute or two to start the first time.
+5. Log in with `admin` / `admin` and choose a new, strong password. Store it in a password manager, **not** in your project.
 
-   Sentry.init({
-     dsn: process.env.SENTRY_DSN,
-   });
+**Question:** What does `docker ps` show you? Which columns tell you that SonarQube is running, and on which port?
+
+**Question:** Why run SonarQube in Docker instead of installing it directly on your computer?
+
+### Exercise 2: Your first scan
+
+1. In SonarQube, choose **Create a local project**. Give it a name and a project key, for example `items-project`. Keep the default settings for new code.
+2. Choose **Locally** as the way to analyse it, and generate a token. Copy the token somewhere safe for now.
+3. Choose **JavaScript, TypeScript** as the project type, and run the scan from your project folder:
+
+   ```bash
+   npx @sonar/scan -Dsonar.host.url=http://localhost:9000 -Dsonar.token=YOUR_TOKEN -Dsonar.projectKey=items-project
    ```
 
-3. Add `SENTRY_DSN=...` to your `.env` file. Check that `.env` is in `.gitignore`.
-4. Add `SENTRY_DSN=` (with no value) to a `.env.example` file, so your teammates know the variable exists.
-5. Import `instrument.js` on the **very first line** of `index.ts`, before Express and everything else.
+4. Open your project in SonarQube. Take a screenshot of the **Overview** page.
 
-> In the video, Sentry didn't receive anything at first because of two small mistakes: the `.env` file wasn't loaded, and the variable was spelled `DNS` instead of `DSN`. That's why `instrument.js` loads `dotenv/config` itself. If nothing arrives in your dashboard, check the spelling first.
+> This command has your token in it. That's fine for one quick test in your terminal, but **never** put it in a file you commit. You'll fix that properly in Exercise 4.
 
-**Question:** Why must `instrument.js` be imported before everything else?
+**Question:** Did your project pass or fail the quality gate? How many issues did SonarQube find?
 
-**Question:** Why do we keep the DSN in `.env` instead of in the code?
+### Exercise 3: Read before you fix
 
-### Exercise 2: Your first error report
+Open the **Issues** tab. Don't fix anything yet. First, learn to read what SonarQube tells you.
 
-1. Add a test route to your app:
+Choose **three different issues**, and for each one, write in `ANSWERS.md`:
 
-   ```js
-   app.get("/debug-sentry", (req, res) => {
-     throw new Error("My first Sentry error!");
-   });
-   ```
+- the rule name and the file and line where it was found
+- what is wrong, in your own words (use the **Why is this an issue?** tab)
+- what the compliant code would look like
+- whether you agree that it's a problem, and why
 
-2. Add the Sentry error handler **after all your routes**:
+**Question:** Depending on the version, SonarQube groups issues either by the quality they affect (**Security**, **Reliability**, **Maintainability**) or by type (**Vulnerability**, **Bug**, **Code Smell**). Explain each of the three groups your SonarQube uses, with an example.
 
-   ```js
-   Sentry.setupExpressErrorHandler(app);
-   ```
-
-3. Start your server and open `http://localhost:3000/debug-sentry` in the browser or in Insomnia.
-4. Find the error in your Sentry dashboard. Take a screenshot.
-5. Open the issue and find:
-   - the file and line number where the error was thrown
-   - your Node.js version
-   - your operating system
-   - the environment
-
-**Question:** You didn't add any extra information to this error yourself. List everything Sentry recorded anyway.
-
-### Exercise 3: Order matters
-
-In the video, the Sentry error handler had to go **after** all the routes, but **before** any other error middleware. Find out why, by breaking it on purpose:
-
-1. Move `Sentry.setupExpressErrorHandler(app)` so it's **above** your routes.
-2. Visit `/debug-sentry` again. Does a new event arrive in Sentry?
-3. Move the handler back to its correct place, and check that events arrive again.
-
-**Question:** What happened when the handler was above the routes, and why? (Think about the order in which Express runs middleware.)
+**Question:** SonarQube, your tests and Sentry all help you find problems. What does each one find that the others can't?
 
 ---
 
 ## Medium
 
-### Exercise 4: Catch the errors you already catch
+### Exercise 4: Get the token out of your code
 
-Most of your routes have a `try/catch`, like the `GET /items` route in the video. When an error is caught there, your route sends a response itself, so the error never reaches Sentry's error handler.
+In the video, the quality gate **failed** because the token was written in `package.json`. SonarQube spotted the secret, just like it would spot a database password.
 
-1. Add `Sentry.captureException(error)` to the `catch` block of **every route** that talks to the database.
-2. Break the database connection on purpose, for example by changing one letter of the database password in `.env`, like in the video.
-3. Call each route in Insomnia. Check that every route shows up in Sentry.
-4. Fix the password. Check that the routes work again, then mark the issues as **Resolved** in the dashboard. Take a screenshot.
+1. Install the scanner and `dotenv-cli` as dev dependencies:
 
-**Question:** Why didn't the errors inside your `try/catch` reach `setupExpressErrorHandler` by themselves?
-
-**Question:** Several requests failed for the same reason. Did Sentry show them as separate issues, or group them? Why is that useful?
-
-### Exercise 5: Breadcrumbs and tags
-
-The video compared **breadcrumbs** to little notes that tell the story before the crash, and **tags** to stickers you can filter on later.
-
-In each database route:
-
-1. Add a breadcrumb at the start of the route:
-
-   ```js
-   Sentry.addBreadcrumb({
-     message: "Fetch items route",
-     level: "info",
-   });
+   ```bash
+   npm install -D @sonar/scan dotenv-cli
    ```
 
-2. Add a tag that says which part of the app it is:
+2. Add your token and the SonarQube address to `.env`:
 
-   ```js
-   Sentry.setTag("feature", "items");
+   ```bash
+   SONAR_TOKEN=your-token-here
+   SONAR_HOST_URL=http://localhost:9000
    ```
 
-   Use a different `feature` value for each group of routes, for example `items`, `users` or `orders`.
+   The scanner reads `SONAR_TOKEN` and `SONAR_HOST_URL` from the environment by itself, so you don't need to put them in the command.
 
-3. Break the database connection again, and call routes from at least **two different features**.
-4. Open an issue and find your breadcrumb and your tag. Take a screenshot.
-5. In the Issues search bar, filter on one feature, for example `feature:items`. Take a screenshot.
+3. Add both variables, **without values**, to `.env.example`.
+4. Create `sonar-project.properties` in the root of your project:
 
-**Question:** Explain the difference between a breadcrumb and a tag in your own words. Give one example of when each one would help your team.
-
-### Exercise 6: One helper instead of copy-paste
-
-By now, every `catch` block probably looks almost the same: set a tag, send to Sentry, log with Winston, send a 500 response. That's a lot of copy-paste, and copy-paste is where bugs hide.
-
-1. Create a helper function, for example in `utils/reportError.js`:
-
-   ```js
-   export const reportError = (error, feature) => {
-     // set the tag, capture the exception, and log it with Winston
-   };
+   ```properties
+   sonar.projectKey=items-project
+   sonar.projectName=Items Project
+   sonar.sources=src
    ```
 
-2. **Refactor:** replace the repeated code in every `catch` block with a call to `reportError(error, "items")`.
-3. Break the database connection once more, and check that Sentry and Winston still receive everything, with the right tags.
+   Change `src` if your code lives in a different folder.
 
-**Question:** You now send each error to both Winston and Sentry. What does each tool give you that the other doesn't?
+5. Add a script to `package.json`:
+
+   ```json
+   "sonar": "dotenv -- sonar"
+   ```
+
+   `dotenv --` loads your `.env` file first, then runs the scanner.
+
+6. Run `npm run sonar` and check that a new analysis appears in SonarQube.
+7. Search your whole project for the token, for example with your editor's search. It should only appear in `.env`.
+
+**Question:** Your `package.json` goes to GitHub. What could someone do with your SonarQube token if they found it there? What about a database password or a Sentry DSN?
+
+**Question:** Why is it better to put settings like the project key in `sonar-project.properties` than in a long command?
+
+### Exercise 5: Scan only your own code
+
+SonarQube should judge **your** code, not code that was generated or downloaded. Otherwise the real problems drown in noise, just like the Zod errors would have in Sentry.
+
+1. Look at the **Code** tab in SonarQube. Which folders and files were scanned?
+2. Add exclusions to `sonar-project.properties` for anything that isn't your own code, for example:
+
+   ```properties
+   sonar.exclusions=node_modules/**,dist/**,coverage/**
+   ```
+
+   Also check for generated code, like a generated Prisma client, and exclude it if it's in your source folder.
+
+3. Tell SonarQube which files are tests, so they aren't judged as normal code:
+
+   ```properties
+   sonar.tests=src
+   sonar.test.inclusions=**/*.test.ts
+   ```
+
+4. Run `npm run sonar` again. Compare the number of lines of code and the number of issues with your first scan.
+
+**Question:** What changed in the numbers, and why? Why is it a problem when a tool reports issues in code you didn't write?
+
+### Exercise 6: Fix, test, repeat
+
+1. **Fix the promise chain**, like in the video. If your app connects to the database with `.then().catch()`, move the connection into its own file, for example `db.ts`, and use `async`/`await` with a `try/catch`.
+2. Run `npm test`. Is everything still green?
+3. Run `npm run sonar`. Check that the issue is gone.
+4. Now fix **at least three more** issues of your own choice, one at a time. After each fix: run the tests, run the scan, and commit.
+
+Keep a small table in `ANSWERS.md`:
+
+| Rule                                      | File       | What I changed                                              | Tests still green? |
+| ----------------------------------------- | ---------- | ----------------------------------------------------------- | ------------------ |
+| Prefer top-level await over promise chain | `index.ts` | Moved the database connection into `db.ts` with async/await | Yes                |
+
+**Question:** Why run your tests after every fix, even when the change looks small?
+
+**Question:** Choose one of your fixes. Is the code easier to read now? Explain why or why not.
 
 ---
 
 ## Challenging
 
-### Exercise 7: Not every error belongs in Sentry
+### Exercise 7: Test coverage in SonarQube
 
-Last week you used Zod to check input. When a user sends a bad request body, that's **the user's mistake**, not a bug in your code. If every bad request ended up in Sentry, the real bugs would drown in the noise.
+You already measure coverage with `npm run test:coverage`. Now you'll show it in SonarQube too. SonarQube doesn't run your tests itself. It reads the coverage report that Vitest writes.
 
-1. Add a Zod schema to one of your `POST` routes, for example `POST /items`.
-2. In the `catch` block, check what kind of error it is:
-   - A `ZodError` returns status **400** with a clear message, and is **not** sent to Sentry
-   - Any other error returns status **500** and **is** sent to Sentry with `reportError`
+1. Make Vitest write a coverage report in the **LCOV** format, which SonarQube can read. In `vitest.config.ts`:
 
-   > **Hint:** `import { ZodError } from "zod";` and then `if (error instanceof ZodError) { ... }`.
+   ```ts
+   import { defineConfig } from "vitest/config";
 
-3. Test both paths:
-   - Send an invalid body. You get a 400, and **nothing** new appears in Sentry
-   - Break the database connection and send a valid body. You get a 500, and the error **does** appear in Sentry
-
-**Question:** Why is it a problem if Sentry fills up with errors that aren't bugs? Think about what happens when you get 200 alert emails a day.
-
-**Question:** Name one other kind of error that shouldn't go to Sentry, and one that always should.
-
-### Exercise 8: Development or production?
-
-Your errors from testing on your own laptop shouldn't mix with errors from real users.
-
-1. Add an `environment` to `Sentry.init`:
-
-   ```js
-   Sentry.init({
-     dsn: process.env.SENTRY_DSN,
-     environment: process.env.NODE_ENV || "development",
+   export default defineConfig({
+     test: {
+       coverage: {
+         provider: "v8",
+         reporter: ["text", "lcov"],
+       },
+     },
    });
    ```
 
-2. Trigger an error with `NODE_ENV=development`, then one with `NODE_ENV=production`.
-3. In the dashboard, filter the issues by environment. Take a screenshot.
-4. The `/debug-sentry` route shouldn't exist in production. Make sure it's only added when the environment is **not** production.
+   If you already have a `vitest.config.ts`, add the `coverage` part to it.
 
-**Question:** Why would a team want to see development and production errors separately?
+2. Run `npm run test:coverage`. Check that the file `coverage/lcov.info` was created.
+3. Tell SonarQube where to find it, in `sonar-project.properties`:
 
-**Question:** What could go wrong if `/debug-sentry` were left open in production?
+   ```properties
+   sonar.javascript.lcov.reportPaths=coverage/lcov.info
+   ```
 
-### Exercise 9: Be the detective
+4. Change your `sonar` script so the tests always run first:
 
-Add this route to your app. Change `item` and `name` to match your own Prisma model if needed.
+   ```json
+   "sonar": "npm run test:coverage && dotenv -- sonar"
+   ```
 
-```ts
-app.get("/items/:id", async (req, res) => {
-  Sentry.addBreadcrumb({
-    message: `Fetch item ${req.params.id}`,
-    level: "info",
-  });
+5. Run `npm run sonar`. Open the **Coverage** view and find a file with low coverage. Take a screenshot.
+6. Write one test that covers some of the red lines, and scan again.
 
-  try {
-    const item = await prisma.item.findUnique({
-      where: { id: Number(req.params.id) },
-    });
+**Question:** Compare the coverage percentage in SonarQube with the table Vitest prints. Are they the same? If not, why might they differ?
 
-    res.json({ ...item, name: item.name.toUpperCase() });
-  } catch (error) {
-    reportError(error, "items");
-    res.status(500).json({ error: "Something went wrong" });
-  }
-});
-```
+**Question:** Why does the script use `&&` between the two commands? What happens if a test fails?
 
-It works for every item that exists. Your job is to find out what happens otherwise, **using only Sentry**.
+### Exercise 8: Make the quality gate fail, then pass
 
-1. Call the route with an ID that exists. It works.
-2. Call it with an ID that doesn't exist, for example `999999`. You get a 500.
-3. **Don't look at the code yet.** Open the issue in Sentry. Use the error message, the stack trace and the breadcrumb to work out:
-   - which line broke
-   - what the error message means
-   - which ID caused it
-4. Fix the route. A missing item should return **404** with a clear message, not a 500. And since a missing item isn't a bug, it shouldn't go to Sentry either.
-5. Also call the route with `/items/abc`. What happens? Use what you learned in Exercise 7 to make it return a **400** instead.
+A **quality gate** is a set of conditions your code must meet. SonarQube's default gate, **Sonar way**, looks mostly at **new code**: for example, new code must have at least 80% test coverage and very little duplication.
 
-   > **Hint:** `z.number().int().positive().parse(Number(req.params.id))` throws a `ZodError` when the ID isn't a positive whole number.
+1. Open **Quality Gates** in the top menu, and read the conditions of the **Sonar way** gate.
+2. Make the gate fail **on purpose**. In a new file, add code that SonarQube will dislike, for example:
+   - a hard-coded password: `const dbPassword = "secret123";`
+   - a variable you never use
+   - a function with no tests at all
+3. Run `npm run sonar`. Check that the gate fails. Take a screenshot, and note which conditions failed.
+4. Fix it properly: remove the secret, remove the unused code, and add tests. Scan again until the gate **passes**. Take a screenshot.
 
-6. Check that all three cases work: an existing ID returns 200, a missing ID returns 404, and `abc` returns 400. Then mark the issue as **Resolved** in Sentry.
+**Question:** Why does the quality gate focus on **new code**, and not on all the code in the project? Think about a big, old project with thousands of issues.
 
-**Question:** Write a short incident report in `ANSWERS.md`, with four parts:
+**Question:** In a team, what could you use a failing quality gate for? (Hint: think about what happens before code is merged.)
 
-- **What happened:** what the user did, and what they saw
-- **How Sentry helped:** which information in the issue pointed you to the bug
-- **The fix:** what you changed, and why
-- **Prevention:** how could you have caught this bug before it reached Sentry? Think back to the last few weeks.
+### Exercise 9: Security review and your final report
 
-> **Good to know:** your editor may show a warning under `item.name`, saying that `item` is possibly `null`. That warning is a clue! Like last week, TypeScript warned you while writing the code, but the code still ran. Sentry caught the error at runtime.
+Not everything SonarQube flags is a real problem. Part of using the tool well is deciding what to fix, and explaining your decisions.
+
+1. Open the **Security Hotspots** tab. A hotspot isn't necessarily a bug: it's code that a human should look at. For each hotspot:
+   - read why SonarQube flagged it
+   - decide whether it's safe or needs fixing
+   - fix it, or mark it as **Safe** with a comment that explains why
+2. Find one issue that you think is **not** worth fixing in your project. Mark it as **Accept** (or **Won't fix** in older versions) or **False positive**, and write a comment in SonarQube that explains why.
+3. Write a short **quality report** in `ANSWERS.md`:
+
+   |                             | First scan | Final scan |
+   | --------------------------- | ---------- | ---------- |
+   | Quality gate                |            |            |
+   | Lines of code               |            |            |
+   | Issues                      |            |            |
+   | Security hotspots to review |            |            |
+   | Coverage                    |            |            |
+
+   Below the table, answer in a few sentences:
+   - **What changed the most**, and what caused it?
+   - **Which fix are you proudest of**, and why?
+   - **What's left**, and would you fix it next, or leave it? Why?
+
+**Question:** You marked an issue as Accept or False positive. What could go wrong if a team does that too often?
+
+**Question:** Over the last weeks you used tests, Zod, Sentry and SonarQube. If you could only keep two of them on a real project, which would you choose, and why?
 
 ---
 
@@ -267,34 +297,34 @@ It works for every item that exists. Your job is to find out what happens otherw
 
 ### Watch and read first
 
-- [Find and Fix Bugs with Sentry](https://www.youtube.com/watch?v=ueSddUv8ipk): this week's video.
-- [Sentry for Express](https://docs.sentry.io/platforms/javascript/guides/express/): the official setup guide, including `instrument.js` and `setupExpressErrorHandler`.
+- [Setting up SonarQube for a TypeScript project](https://youtu.be/VTl0PDGb214): this week's video.
+- [SonarQube on Docker Hub](https://hub.docker.com/_/sonarqube): the official image, and how to run it with Docker and Docker Compose.
 
 ### Read for the exercises
 
-- [Capturing errors](https://docs.sentry.io/platforms/javascript/guides/express/usage/): `captureException` and `captureMessage`. Useful for Exercise 4.
-- [Breadcrumbs](https://docs.sentry.io/platforms/javascript/guides/express/enriching-events/breadcrumbs/): what breadcrumbs are and which ones Sentry adds by itself. Useful for Exercise 5.
-- [Tags](https://docs.sentry.io/platforms/javascript/guides/express/enriching-events/tags/): adding tags and searching on them. Useful for Exercise 5.
-- [Environments](https://docs.sentry.io/platforms/javascript/guides/express/configuration/environments/): separating development and production. Useful for Exercise 8.
+- [@sonar/scan on npm](https://www.npmjs.com/package/@sonar/scan): the scanner for npm projects, and the different ways to start it. Useful for Exercises 2 and 4.
+- [dotenv-cli on npm](https://www.npmjs.com/package/dotenv-cli): how `dotenv --` loads your `.env` file before running a command. Useful for Exercise 4.
+- [JavaScript/TypeScript test coverage](https://docs.sonarsource.com/sonarqube-server/analyzing-source-code/test-coverage/javascript-typescript-test-coverage): how SonarQube reads LCOV coverage reports. Useful for Exercise 7.
+- [Vitest: Coverage](https://vitest.dev/guide/coverage): coverage providers and reporters, including `lcov`. Useful for Exercise 7.
 
 ### Background
 
-- [DSN explainer](https://docs.sentry.io/concepts/key-terms/dsn-explainer/): what the DSN is, and what it can and can't be used for.
-- [ES modules setup](https://docs.sentry.io/platforms/javascript/guides/express/install/esm/): if you use `import` syntax, Sentry recommends loading `instrument.js` with Node's `--import` flag. Importing it on the first line, as in the video, is enough for catching errors. If you see a warning that Express is "not instrumented", this page explains why.
+- [SonarQube Server documentation](https://docs.sonarsource.com/sonarqube-server/): the official documentation. Search for "quality gates", "new code" and "security hotspots" for Exercises 8 and 9.
+- [Docker Compose overview](https://docs.docker.com/compose/): a refresher on `docker compose up`, `stop` and `down`.
 
 ---
 
 ## What to hand in
 
-Push your `week11` branch with:
+Hand in by **Monday 16 November**. Push your `week11/sonarqube` branch with:
 
-- [ ] `instrument.js` that reads the DSN from `.env`
-- [ ] `.env.example` with `SENTRY_DSN=` and **no** real `.env` in the repository
-- [ ] `setupExpressErrorHandler` after all routes
-- [ ] `utils/reportError.js` used in every `catch` block
-- [ ] The Zod check from Exercise 7 and the fixed `/items/:id` route from Exercise 9
-- [ ] `ANSWERS.md` with every **Question:** answered, including the incident report
-- [ ] A `screenshots/` folder with the screenshots from Exercises 2, 4, 5 and 8
+- [ ] `compose.yml` for SonarQube
+- [ ] `sonar-project.properties` with your exclusions, test settings and coverage path
+- [ ] The `sonar` script in `package.json`, with **no** token anywhere in the repository
+- [ ] `.env.example` with `SONAR_TOKEN=` and `SONAR_HOST_URL=`
+- [ ] Your fixes from Exercises 6 and 8, each in its own commit, with `npm test` still green
+- [ ] `ANSWERS.md` with every **Question:** answered, the fix table and the quality report
+- [ ] A `screenshots/` folder with the screenshots from Exercises 2, 7 and 8
 - [ ] A commit history with small, clear steps
 
 If you get stuck, write down what you tried and where it broke. An honest "I got stuck here" is worth more than a copied solution.
