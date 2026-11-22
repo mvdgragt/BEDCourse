@@ -1,90 +1,222 @@
-# Week 12 – Continuous Integration with GitHub Actions
+# Final Project – Full-Stack Application
 
-**Video:** [Run Your Tests Automatically with GitHub Actions](https://youtu.be/Id1_28Wbmog)
+## Overview
 
-Your Week 10 tests only help if someone runs them. This week GitHub Actions runs `npm test` for you on every pull request. The video is a little older and used Jest but now we use Vitest, but the steps are the same.
+In groups of 3 or 4, you will build a complete, containerized full-stack application and present it on the last day of the course: **Friday 8 January 2027**.
 
-**Before you start:** create the branch `week12/ci` from `week10/TDD`, so they have the same content. Check that `npm test` is green, that it runs `vitest run`, and that `package-lock.json` is committed to github.
+### Here are the groups:
 
-In this assignment `week12/ci` plays the role of `main`: your workflow runs on it, and every pull request goes into it.
+- group 1: Madde, Snezana, Elin, Dante
+- group 2: Laetitia, Fu, Jakob, Lexi
+- group 3: Daniel, Emil, Binh, Lucian
+- group 4: Shanthi, Zhuoxuan, Achini
+- group 5: Joseph, Isak, Bianca
 
-Answer every **Question:** in `ANSWERS.md`, and put screenshots in `screenshots/`.
+This is your chance to show everything you have learned in the course: a typed REST API with a database, a React frontend, authentication, automated tests and Docker. Pick a project you think is fun!!! The goal is an app you are proud to show in your portfolio and to future employers.
 
-## Easy
+A smaller app that works well, is tested and is easy to run beats a big app that is half finished. Start small, get it working, then add features.
 
-**Exercise 1: Your first workflow.** In the **Actions** tab, open the **Node.js** template and copy its content, but don't commit from the browser, unlike what I showed in the video. Save it locally as `.github/workflows/ci.yml` and rename it to `CI`. Remove the `npm run build --if-present` line if you like. In the on section, change both [ "main" ] to [ "week12/ci" ]. Push the branch and watch the run in the Actions tab.
+There are no grades for this project. The goal is to finish it, present it, and be proud of what your group has built.
 
-**Question:** What do `on`, `runs-on`, `strategy.matrix` and `steps` do? Why did nothing happen when you only pushed the branch?
+## Tech stack
 
-**Exercise 2: Read the report.** Click **Details** on the checks. How many jobs ran, and why? Find your pizza and library test names in the `npm test` step. Take a screenshot of the green checks.
+Every group uses the same core stack, so you can help each other and so the project shows the skills from the course.
 
-**Question:** Why can a test pass on your laptop but fail in CI? Think of why the video's first run failed.
+| Part           | Tools                                                   |
+| -------------- | ------------------------------------------------------- |
+| Backend        | Node.js, Express, TypeScript, Sequelize, Zod            |
+| Database       | PostgreSQL                                              |
+| Frontend       | Recommended:                                            |
+|                | React with Vite, axios, useState, useEffect             |
+| Authentication | Suggestion: Firebase Authentication or Auth0 (OAuth)    |
+| Testing        | Vitest (unit), Supertest (API), Playwright (end-to-end) |
+| Containers     | Docker, Docker Compose                                  |
+| Teamwork       | Git, GitHub, GitHub Issues, GitHub Projects             |
 
-**Exercise 3: Red on purpose.** Create the branch `week12/red` from `week12/ci`, add a failing test, commit `red: failing test on purpose`, push, and open a pull request into `week12/ci`. Find the _expected_ and _received_ line in the log and take a screenshot. Fix it, push, merge, and check which event starts the new run on `week12/ci`.
+You may add extra libraries (for example React Router or a UI library), but write in your README why you chose them. You may use AI tools to help you, but every person in the group must be able to explain the code.
 
-**Question:** Why is a red cross on the pull request better than one after merging?
+**Struggling with the frontend?** You may build a command-line app instead of a React app, using the npm package `@inquirer/prompts` (or a similar package). The CLI shows menus and questions in the terminal and talks to your own API with axios. Your backend, tests and Docker requirements stay the same.
 
-## Medium
+## Project ideas
 
-From now on, make one branch from `week12/ci` per exercise and merge it through a pull request in `week12/ci`.
+Choose one idea below, or pitch your own idea to your teacher before you start. Every level can become an app you are proud of. A challenging idea gives you more to show, and an easy idea gives you more time to make it polished.
 
-**Exercise 4: Check types in CI.** Vitest only runs your code; it doesn't check types. That's why the red line under `menu[pizzaType]` in Week 10, Exercise 1 didn't stop your tests. Let CI check the types too:
+| Level       | Idea                                   | What it is about                                                                                                       |
+| ----------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Easy        | Recipe book                            | Add, edit and delete recipes with ingredients and cooking time. Filter by category (breakfast, dinner, dessert).       |
+| Easy        | Watchlist                              | Save movies or books, mark them as watched or read, give a rating from 1 to 5, and sort by rating.                     |
+| Easy        | School lost and found                  | Post found items with description, place and date. Search by keyword and mark items as returned.                       |
+| Medium      | Library loan system                    | Books, members and loans with due dates. Show available books, who borrowed what, and overdue loans.                   |
+| Medium      | Workout tracker                        | Log workouts with exercises, sets, reps and weight. Show history and progress, such as the heaviest lift per exercise. |
+| Medium      | Café ordering system                   | A menu with categories, a cart and orders. Staff change the order status: received, preparing, ready.                  |
+| Challenging | Project board (like Trello)            | Boards, columns and cards. Invite members and move cards between columns. Drag-and-drop is a bonus.                    |
+| Challenging | Booking system                         | Book a padel court, study room or hairdresser. Stop double bookings. An admin manages resources and opening hours.     |
+| Challenging | Second-hand marketplace (like Blocket) | Listings with price, category and condition. Search, filter, favourites, and messages between buyer and seller.        |
 
-1. Add the script `"typecheck": "tsc --noEmit"` to `package.json`. Run `npm run typecheck` on your own machine and fix any errors it finds.
-2. In `ci.yml`, add the step `- run: npm run typecheck` between `npm ci` and `npm test`.
-3. Test it: add `const copies: number = "three";` to `library.ts` and push. CI goes red at the type check step. Take a screenshot, remove the line and push again.
+Your own idea should include the same building blocks: at least three models, at least one relation, login, and full CRUD on at least one resource.
 
-**Question:** Would this step have caught the _possibly null_ bug from Week 11, Exercise 9?
+## Core requirements
 
-**Exercise 5: Pick your Node versions.** The video tested on Node 18, 20 and 22. Check the [Node.js release schedule](https://nodejs.org/en/about/previous-releases) and change the matrix to the LTS versions that are supported today. Add an `engines` field to `package.json` with the lowest one.
+These are the building blocks every project should have. Together they show the skills from the course.
 
-**Question:** What's the difference between `npm ci` and `npm install`, and why does CI use `npm ci`?
+**Backend**
 
-**Exercise 6: Protect `week12/ci`.** In **Settings → Branches**, require a pull request and passing CI checks before merging into `week12/ci`. Open a pull request with a failing test and take a screenshot of the blocked merge button. Add a status badge to `README.md`. On a free account, a private repository may not enforce the rule; if so, write down what you saw.
+- REST API with Express and TypeScript
+- Sequelize with PostgreSQL, with at least 3 models and at least 1 relation
+- Full CRUD (create, read, update, delete) on at least one resource
+- Zod validation on all data sent to the API (body and params)
+- Correct HTTP status codes (200, 201, 400, 401, 404, 500) and clear error messages
+- Secrets (database URL, API keys) in a `.env` file that is not pushed to GitHub, plus a `.env.example`
+  **Suggested Frontend**
 
-**Question:** What does branch protection do that CI alone can't?
+- React app built with Vite
+- Fetches data from your own API with axios inside useEffect
+- Uses useState to show data, loading and errors
+- The user can create, edit and delete data through forms
+  _Alternative:_ a command-line app built with `@inquirer/prompts` (or similar) that calls your API with axios, lets the user create, view, edit and delete data, and shows clear error messages.
 
-## Challenging (optional)
+**Suggested Authentication**
 
-**Exercise 7: Fix the broken workflow.** Save this as `.github/workflows/broken.yml`. It has four bugs, and one of them makes it green while it's lying. Use only the logs, fix one bug per commit, then delete the file.
+- Users log in with Firebase Authentication or Auth0
+- At least one API route is protected: it checks the token and returns 401 without a valid token
+  **Testing**
 
-```yaml
-name: Broken CI
-on:
-  pull_request:
-    branches: ["master"]
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [20.x, 22.x]
-    steps:
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node }}
-      - run: npm test
-```
+- At least 3 unit tests with Vitest (for example Zod schemas or helper functions)
+- At least 3 API tests with Supertest (for example one success case and one error case)
+- All tests run with one command: `npm test`
+  **Docker**
 
-**Question:** Which bug was the most dangerous, and why?
+- A Dockerfile for the backend
+- A `docker-compose.yml` that starts the API and the database together
+- The app starts with `docker compose up`, following the steps in your README
+  **Teamwork and documentation**
 
-**Exercise 8: Coverage in CI.** Set an 80% threshold in `vitest.config.ts` (`test.coverage.thresholds`), run `npm run test:coverage` in CI, and upload the `coverage/` folder with `actions/upload-artifact` from one Node version only. Delete a test for an error path and check that CI goes red.
+- GitHub repository with commits from every group member
+- Features planned as GitHub Issues
+- README with: project description, how to install and run, how to run tests, API endpoints, and who did what
 
-**Question:** Would a 100% threshold be a good idea? Use your Week 10 coverage answer.
+## Stretch goals
 
-**Exercise 9: CI for your Sentry API.** In your Week 11 API, create the branch `week12/api-ci`. Move the _is this a ZodError?_ check into `shouldReport(error)`, and unit test it. Test `reportError` too, with `vi.mock("@sentry/node")` so nothing reaches the real Sentry. Add the same workflow with `env: NODE_ENV: test`. Remember: CI has no `.env` and no database.
+Finished the core requirements and want to go further? Pick any of these. Each one is something extra to show off in your presentation.
 
-**Question:** What does Sentry do without a DSN? If CI did need the DSN, where would it go?
+- **Roles or ownership:** users only change their own data, or there are roles (for example admin and user) with different permissions, checked in the backend.
+- **End-to-end tests:** at least 2 Playwright tests that test a full user flow in the browser (for example log in, create an item, see it in the list).
+- **Fuller test coverage:** Supertest tests cover protected routes (with and without a token) and validation errors.
+- **Full Docker setup:** frontend, backend and database all run with `docker compose up`, with an optimized Dockerfile (for example a small base image, `.dockerignore`, and a multi-stage build).
+- **CI with GitHub Actions:** the tests run automatically on every push or pull request.
+- **Good teamwork in GitHub:** feature branches, pull requests with code review, and issues linked to pull requests.
+- **Deployment:** the app is deployed to a cloud service (for example Vercel, Firebase Hosting, Render or AWS), with the link in the README.
+- **Reflection:** a short text in the README (about half a page per person) about what you learned, what was hard, and what you would do differently.
 
-## Additional reading
+## Optional: AI features
 
-- [Understanding GitHub Actions](https://docs.github.com/en/actions/learn-github-actions/understanding-github-actions) and [Building and testing Node.js](https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs): the basics behind Exercises 1–3.
-- [Events that trigger workflows](https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows) and [Using a matrix](https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs): Exercises 1, 5 and 7.
-- [About protected branches](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches): Exercise 6.
-- [Vitest: Coverage](https://vitest.dev/guide/coverage) and [Vitest: Mocking](https://vitest.dev/guide/mocking): Exercises 8 and 9.
-- [Using secrets in GitHub Actions](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions): Exercise 9.
-- [Continuous Integration](https://martinfowler.com/articles/continuousIntegration.html) (Martin Fowler): why CI exists. The first sections are enough.
+Your group may add AI to your app using what you learned about AI skills, MCP (Model Context Protocol) and AI agents. This is optional. The AI feature is an extra on top of the core requirements, never a replacement for them.
 
-## What to hand in
+**Three ways to add AI**
 
-Push your work, merged into `week12/ci` through pull requests, with `ci.yml` (type check and updated Node versions included), a status badge, `ANSWERS.md`, the `screenshots/` folder and a commit history that shows at least one red run before green. If you get stuck, write down what you tried and where it broke.
+| Level                     | What you build                                                                                      | Example                                                         |
+| ------------------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| 1. AI call in the backend | One endpoint that sends a prompt to an AI model and returns the answer                              | "Suggest a recipe from the ingredients I have"                  |
+| 2. MCP server             | An MCP server that exposes your API as tools, so an AI assistant (like Claude) can use your app     | Tools like `search_books` and `create_loan` for the library app |
+| 3. AI agent               | An agent that uses tools in several steps to reach a goal, and asks the user before it changes data | "Find a free padel court on Friday evening and book it"         |
+
+You can also write an **AI skill** (a `SKILL.md` file) for your project. It teaches an AI agent how to use your API or follow your group's code conventions. Put it in the repository and explain it in the README.
+
+**AI ideas for each project**
+
+| Project              | AI idea                                                         |
+| -------------------- | --------------------------------------------------------------- |
+| Recipe book          | Suggest recipes from ingredients, or create a shopping list     |
+| Watchlist            | Recommend what to watch next based on ratings                   |
+| Lost and found       | Suggest a category and tags from the item description           |
+| Library loan system  | MCP server so an assistant can search books and check loans     |
+| Workout tracker      | Summarize progress and suggest next week's workout              |
+| Café ordering system | Order by chat: "two lattes and a cinnamon bun" becomes an order |
+| Project board        | Split a big task into smaller cards                             |
+| Booking system       | Agent that finds free times and books after the user confirms   |
+| Marketplace          | Write a listing description from a few keywords                 |
+
+**Rules for AI features**
+
+- **Keys stay in the backend.** The AI API key lives in `.env` on the server. The frontend never calls the AI service directly.
+- **Validate AI output with Zod.** Ask the model for JSON and check it with a Zod schema before you save or use it.
+- **The user confirms changes.** An agent may read data freely, but it must ask the user before it creates, changes or deletes anything.
+- **Mock AI in tests.** Vitest and Supertest tests use a fake AI response, so tests are fast, free, and work in GitHub Actions without a key.
+- **Run it in Docker.** An MCP server or agent service is its own service in `docker-compose.yml`.
+- **Explain it.** The README describes the AI feature, which model or service you used, what data is sent to it, and its limits.
+  **Tip:** get your core app working first, then add AI. A small AI feature that works and follows the rules above is more impressive than a big one that breaks.
+
+## Progress checklist
+
+Use this table to track your progress: finish the core column first, then pick stretch goals if you have time.
+
+| Area                           | Core                                                                                                                                                                  | Stretch goals                                                                                           |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Backend and database           | REST API with 3+ models, 1+ relation, CRUD, Zod validation, correct status codes                                                                                      | Clean structure (routes, controllers, services), roles or ownership checked in the backend              |
+| Frontend                       | React app that shows, creates, edits and deletes data with axios, useState and useEffect, or a CLI built with `@inquirer/prompts` that does the same through your API | Clear and responsive UI, good loading and error handling, easy to use                                   |
+| Authentication and security    | Login with Firebase or Auth0, at least one protected route, secrets in `.env`                                                                                         | Roles or ownership, all write routes protected, no secrets in the repository                            |
+| Testing                        | 3+ Vitest unit tests and 3+ Supertest API tests, run with `npm test`                                                                                                  | Plus 2+ Playwright end-to-end tests, tests for protected routes and errors, tests run in GitHub Actions |
+| Docker                         | Dockerfile for the API, Docker Compose with API and database                                                                                                          | Frontend, backend and database in Compose, optimized Dockerfile, deployed app is a bonus                |
+| Teamwork and Git               | Issues for features, commits from everyone                                                                                                                            | Branches, pull requests with review, issues linked to pull requests                                     |
+| Documentation and presentation | README with setup, endpoints and roles in the group, working demo                                                                                                     | Personal reflection, clear explanation of technical choices, everyone answers questions about the code  |
+
+## How to plan your project
+
+Plan backwards from 8 January: decide what must be finished, then split it into small features.
+
+**Use GitHub Issues as features**
+
+1. Write your feature list first, for example "User can log in" or "User can create a booking".
+2. Create one GitHub Issue per feature. Each issue should be small enough to finish in 1–2 days.
+3. Put all issues on a GitHub Projects board with the columns To do, In progress and Done.
+4. Give every issue an owner and a label (backend, frontend, test, docker).
+5. Mark the core features as "must have". Do these first. Extra features come last.
+   **Suggested timeline**
+
+_Week 48 (23–29 November): plan and start_
+
+- [ ] Choose your idea and write a short description
+- [ ] Draw your data model (models and relations)
+- [ ] Create the repository, the project board and the issues
+- [ ] Set up the backend with Sequelize and the first model
+      _Week 49 (30 November–6 December): backend and Docker_
+
+- [ ] CRUD endpoints with Zod validation
+- [ ] Dockerfile and Docker Compose with API and database
+- [ ] First Vitest and Supertest tests
+      _Week 50 (7–13 December): frontend and login_
+
+- [ ] React pages connected to the API with axios
+- [ ] Login with Firebase or Auth0 and protected routes
+      _Week 51 (14–20 December): tests and feature freeze_
+
+- [ ] All core requirements are done and tested
+- [ ] Playwright tests and GitHub Actions (stretch goals)
+- [ ] No new features after this week, only fixes
+      _Christmas break (21 December–3 January)_
+
+- [ ] Optional: polish, deployment, extra features
+
+_Week 1 (4–8 January): finish and present_
+
+- [ ] Test the whole app from a fresh `git clone` with `docker compose up`
+- [ ] Finish the README and the reflections
+- [ ] Prepare the presentation
+      Tip: have a short meeting at the start of every lesson. Each person says what they did, what they will do next, and if they are stuck.
+
+## Submission and presentation
+
+Share the link to your GitHub repository by **Friday 8 January 2027**. Then it's time to show what you built.
+
+**Presentation (about 15 minutes per group)**
+
+- Live demo of the app, started with `docker compose up`
+- Show the data model and one or two parts of the code you are proud of
+- Run the tests and show that they pass
+- Every group member presents a part and answers questions about the code
+  **Before you present, check that:**
+
+- [ ] The app starts from a fresh `git clone` by following the README
+- [ ] `npm test` passes
+- [ ] No `.env` file or secrets are in the repository
+- [ ] All core requirements are done
