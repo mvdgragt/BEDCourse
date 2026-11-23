@@ -1,222 +1,357 @@
-# Final Project – Full-Stack Application
+# Week 12 – A React Frontend for Your Express API
 
-## Overview
+**Video:** [React + Vite frontend with an Express backend](https://www.youtube.com/watch?v=VSkWCl5DNLM)
 
-In groups of 3 or 4, you will build a complete, containerized full-stack application and present it on the last day of the course: **Friday 8 January 2027**.
+Until now, you have tested your API with Postman, Insomnia or the browser. Real users never do that. They click buttons on a web page, and the page talks to the API for them.
 
-### Here are the groups:
+This week you build that page. You create a **React** frontend with **Vite**, next to the Express API you have worked on for weeks (the one with Prisma, Winston, Sentry and SonarQube). The frontend uses **Axios** to send requests to your API, and **CORS** to make sure the API allows those requests.
 
-- group 1: Madde, Snezana, Elin, Dante
-- group 2: Laetitia, Fu, Jakob, Lexi
-- group 3: Daniel, Emil, Binh, Lucian
-- group 4: Shanthi, Zhuoxuan, Achini
-- group 5: Joseph, Isak, Bianca
+You start with the easy part: **reading** data and showing it on the page (`GET`). Then you make the page **change** data: create (`POST`), update (`PUT`) and delete (`DELETE`).
 
-This is your chance to show everything you have learned in the course: a typed REST API with a database, a React frontend, authentication, automated tests and Docker. Pick a project you think is fun!!! The goal is an app you are proud to show in your portfolio and to future employers.
+---
 
-A smaller app that works well, is tested and is easy to run beats a big app that is half finished. Start small, get it working, then add features.
+## Learning goals
 
-There are no grades for this project. The goal is to finish it, present it, and be proud of what your group has built.
+After this assignment you can:
 
-## Tech stack
+- Create a React + TypeScript project with Vite
+- Explain what CORS is, and why the browser blocks requests between different ports
+- Fetch data from your own API with Axios, `useEffect` and `useState`
+- Show a list on the page with `.map()`, and explain why every item needs a `key`
+- Send `POST`, `PUT` and `DELETE` requests from a form or a button
+- Keep the page in sync with the database after a change
 
-Every group uses the same core stack, so you can help each other and so the project shows the skills from the course.
+---
 
-| Part           | Tools                                                   |
-| -------------- | ------------------------------------------------------- |
-| Backend        | Node.js, Express, TypeScript, Sequelize, Zod            |
-| Database       | PostgreSQL                                              |
-| Frontend       | Recommended:                                            |
-|                | React with Vite, axios, useState, useEffect             |
-| Authentication | Suggestion: Firebase Authentication or Auth0 (OAuth)    |
-| Testing        | Vitest (unit), Supertest (API), Playwright (end-to-end) |
-| Containers     | Docker, Docker Compose                                  |
-| Teamwork       | Git, GitHub, GitHub Issues, GitHub Projects             |
+## Before you start
 
-You may add extra libraries (for example React Router or a UI library), but write in your README why you chose them. You may use AI tools to help you, but every person in the group must be able to explain the code.
+1. Check out your `week11/sonarqube` branch, and make sure it is up to date.
+2. Create a new branch from it: `week12/frontend`. You continue working on the same project, so your API, database and SonarQube setup come with you.
+3. Start your API and check that your endpoints still work in Postman or Insomnia. Write down which endpoints you have, which port the API runs on, and what one object looks like (for example an item with `id` and `name`).
+4. Your frontend goes in a **new folder** called `client`, in the root of your project. Your API code stays where it is.
 
-**Struggling with the frontend?** You may build a command-line app instead of a React app, using the npm package `@inquirer/prompts` (or a similar package). The CLI shows menus and questions in the terminal and talks to your own API with axios. Your backend, tests and Docker requirements stay the same.
+> In the video, the API runs on port `8080` and the endpoint is `/api`. Your API probably uses another port (for example `3000`) and other endpoints (for example `/items`). Use **your own** port and endpoints everywhere in this assignment. The examples below use `/items` and an item with a `name`. Change them to fit your project.
 
-## Project ideas
+### How to work
 
-Choose one idea below, or pitch your own idea to your teacher before you start. Every level can become an app you are proud of. A challenging idea gives you more to show, and an easy idea gives you more time to make it polished.
+- **Small steps.** Get one thing working in the browser before you start the next one.
+- **Two terminals.** One runs the API, one runs the client. Check which folder you are in before you run `npm install`. In the video, packages almost ended up in the wrong folder.
+- **Commit every step**, with clear messages like `add vite client` or `add delete button`.
+- **Answer every question** marked **Question:** in `ANSWERS.md`, in full sentences.
+- **Take screenshots** where the exercise asks for them, and put them in a `screenshots/` folder.
 
-| Level       | Idea                                   | What it is about                                                                                                       |
-| ----------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Easy        | Recipe book                            | Add, edit and delete recipes with ingredients and cooking time. Filter by category (breakfast, dinner, dessert).       |
-| Easy        | Watchlist                              | Save movies or books, mark them as watched or read, give a rating from 1 to 5, and sort by rating.                     |
-| Easy        | School lost and found                  | Post found items with description, place and date. Search by keyword and mark items as returned.                       |
-| Medium      | Library loan system                    | Books, members and loans with due dates. Show available books, who borrowed what, and overdue loans.                   |
-| Medium      | Workout tracker                        | Log workouts with exercises, sets, reps and weight. Show history and progress, such as the heaviest lift per exercise. |
-| Medium      | Café ordering system                   | A menu with categories, a cart and orders. Staff change the order status: received, preparing, ready.                  |
-| Challenging | Project board (like Trello)            | Boards, columns and cards. Invite members and move cards between columns. Drag-and-drop is a bonus.                    |
-| Challenging | Booking system                         | Book a padel court, study room or hairdresser. Stop double bookings. An admin manages resources and opening hours.     |
-| Challenging | Second-hand marketplace (like Blocket) | Listings with price, category and condition. Search, filter, favourites, and messages between buyer and seller.        |
+---
 
-Your own idea should include the same building blocks: at least three models, at least one relation, login, and full CRUD on at least one resource.
+## Easy
 
-## Core requirements
+### Exercise 1: Create the client with Vite
 
-These are the building blocks every project should have. Together they show the skills from the course.
+1. From the root of your project, create the client:
 
-**Backend**
+   ```bash
+   npm create vite@latest client
+   ```
 
-- REST API with Express and TypeScript
-- Sequelize with PostgreSQL, with at least 3 models and at least 1 relation
-- Full CRUD (create, read, update, delete) on at least one resource
-- Zod validation on all data sent to the API (body and params)
-- Correct HTTP status codes (200, 201, 400, 401, 404, 500) and clear error messages
-- Secrets (database URL, API keys) in a `.env` file that is not pushed to GitHub, plus a `.env.example`
-  **Suggested Frontend**
+   Choose **React** and **TypeScript**.
 
-- React app built with Vite
-- Fetches data from your own API with axios inside useEffect
-- Uses useState to show data, loading and errors
-- The user can create, edit and delete data through forms
-  _Alternative:_ a command-line app built with `@inquirer/prompts` (or similar) that calls your API with axios, lets the user create, view, edit and delete data, and shows clear error messages.
+2. Go into the folder, install, and start it:
 
-**Suggested Authentication**
+   ```bash
+   cd client
+   npm install
+   npm run dev
+   ```
 
-- Users log in with Firebase Authentication or Auth0
-- At least one API route is protected: it checks the token and returns 401 without a valid token
-  **Testing**
+3. Open the address Vite shows (usually `http://localhost:5173`). Click the counter button to check that React works.
+4. Check that `client/node_modules` is ignored by Git. Vite creates its own `.gitignore` inside `client`, but check it.
 
-- At least 3 unit tests with Vitest (for example Zod schemas or helper functions)
-- At least 3 API tests with Supertest (for example one success case and one error case)
-- All tests run with one command: `npm test`
-  **Docker**
+**Question:** Your project now has two `package.json` files: one for the API and one for the client. Why? What would go wrong if you installed React in the API's `package.json`?
 
-- A Dockerfile for the backend
-- A `docker-compose.yml` that starts the API and the database together
-- The app starts with `docker compose up`, following the steps in your README
-  **Teamwork and documentation**
+**Question:** What does Vite do for you while you run `npm run dev`? Try changing a text in `App.tsx` and saving. What happens in the browser?
 
-- GitHub repository with commits from every group member
-- Features planned as GitHub Issues
-- README with: project description, how to install and run, how to run tests, API endpoints, and who did what
+### Exercise 2: Fetch data and fix CORS
 
-## Stretch goals
+1. In the **client** folder, install Axios:
 
-Finished the core requirements and want to go further? Pick any of these. Each one is something extra to show off in your presentation.
+   ```bash
+   npm install axios
+   ```
 
-- **Roles or ownership:** users only change their own data, or there are roles (for example admin and user) with different permissions, checked in the backend.
-- **End-to-end tests:** at least 2 Playwright tests that test a full user flow in the browser (for example log in, create an item, see it in the list).
-- **Fuller test coverage:** Supertest tests cover protected routes (with and without a token) and validation errors.
-- **Full Docker setup:** frontend, backend and database all run with `docker compose up`, with an optimized Dockerfile (for example a small base image, `.dockerignore`, and a multi-stage build).
-- **CI with GitHub Actions:** the tests run automatically on every push or pull request.
-- **Good teamwork in GitHub:** feature branches, pull requests with code review, and issues linked to pull requests.
-- **Deployment:** the app is deployed to a cloud service (for example Vercel, Firebase Hosting, Render or AWS), with the link in the README.
-- **Reflection:** a short text in the README (about half a page per person) about what you learned, what was hard, and what you would do differently.
+2. In `App.tsx`, write a function that gets the data from one of your `GET` endpoints, and call it in a `useEffect` with an empty dependency array:
 
-## Optional: AI features
+   ```tsx
+   import { useEffect } from "react";
+   import axios from "axios";
 
-Your group may add AI to your app using what you learned about AI skills, MCP (Model Context Protocol) and AI agents. This is optional. The AI feature is an extra on top of the core requirements, never a replacement for them.
+   function App() {
+     const fetchItems = async () => {
+       const response = await axios.get("http://localhost:3000/items");
+       console.log(response);
+     };
 
-**Three ways to add AI**
+     useEffect(() => {
+       fetchItems();
+     }, []);
 
-| Level                     | What you build                                                                                      | Example                                                         |
-| ------------------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| 1. AI call in the backend | One endpoint that sends a prompt to an AI model and returns the answer                              | "Suggest a recipe from the ingredients I have"                  |
-| 2. MCP server             | An MCP server that exposes your API as tools, so an AI assistant (like Claude) can use your app     | Tools like `search_books` and `create_loan` for the library app |
-| 3. AI agent               | An agent that uses tools in several steps to reach a goal, and asks the user before it changes data | "Find a free padel court on Friday evening and book it"         |
+     return <h1>My items</h1>;
+   }
 
-You can also write an **AI skill** (a `SKILL.md` file) for your project. It teaches an AI agent how to use your API or follow your group's code conventions. Put it in the repository and explain it in the README.
+   export default App;
+   ```
 
-**AI ideas for each project**
+3. Open the browser console. You get a **CORS error**. Take a screenshot of it.
+4. In the **API** folder, install `cors` (and its types, because your API uses TypeScript):
 
-| Project              | AI idea                                                         |
-| -------------------- | --------------------------------------------------------------- |
-| Recipe book          | Suggest recipes from ingredients, or create a shopping list     |
-| Watchlist            | Recommend what to watch next based on ratings                   |
-| Lost and found       | Suggest a category and tags from the item description           |
-| Library loan system  | MCP server so an assistant can search books and check loans     |
-| Workout tracker      | Summarize progress and suggest next week's workout              |
-| Café ordering system | Order by chat: "two lattes and a cinnamon bun" becomes an order |
-| Project board        | Split a big task into smaller cards                             |
-| Booking system       | Agent that finds free times and books after the user confirms   |
-| Marketplace          | Write a listing description from a few keywords                 |
+   ```bash
+   npm install cors
+   npm install --save-dev @types/cors
+   ```
 
-**Rules for AI features**
+5. In your API's main file, allow requests from the client. Put this **before** your routes:
 
-- **Keys stay in the backend.** The AI API key lives in `.env` on the server. The frontend never calls the AI service directly.
-- **Validate AI output with Zod.** Ask the model for JSON and check it with a Zod schema before you save or use it.
-- **The user confirms changes.** An agent may read data freely, but it must ask the user before it creates, changes or deletes anything.
-- **Mock AI in tests.** Vitest and Supertest tests use a fake AI response, so tests are fast, free, and work in GitHub Actions without a key.
-- **Run it in Docker.** An MCP server or agent service is its own service in `docker-compose.yml`.
-- **Explain it.** The README describes the AI feature, which model or service you used, what data is sent to it, and its limits.
-  **Tip:** get your core app working first, then add AI. A small AI feature that works and follows the rules above is more impressive than a big one that breaks.
+   ```ts
+   import cors from "cors";
 
-## Progress checklist
+   app.use(cors({ origin: "http://localhost:5173" }));
+   ```
 
-Use this table to track your progress: finish the core column first, then pick stretch goals if you have time.
+6. Refresh the client. The CORS error is gone, and you see the response object in the console.
+7. Explore the object in the console. Find `response.data`. Log only the part you need.
 
-| Area                           | Core                                                                                                                                                                  | Stretch goals                                                                                           |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Backend and database           | REST API with 3+ models, 1+ relation, CRUD, Zod validation, correct status codes                                                                                      | Clean structure (routes, controllers, services), roles or ownership checked in the backend              |
-| Frontend                       | React app that shows, creates, edits and deletes data with axios, useState and useEffect, or a CLI built with `@inquirer/prompts` that does the same through your API | Clear and responsive UI, good loading and error handling, easy to use                                   |
-| Authentication and security    | Login with Firebase or Auth0, at least one protected route, secrets in `.env`                                                                                         | Roles or ownership, all write routes protected, no secrets in the repository                            |
-| Testing                        | 3+ Vitest unit tests and 3+ Supertest API tests, run with `npm test`                                                                                                  | Plus 2+ Playwright end-to-end tests, tests for protected routes and errors, tests run in GitHub Actions |
-| Docker                         | Dockerfile for the API, Docker Compose with API and database                                                                                                          | Frontend, backend and database in Compose, optimized Dockerfile, deployed app is a bonus                |
-| Teamwork and Git               | Issues for features, commits from everyone                                                                                                                            | Branches, pull requests with review, issues linked to pull requests                                     |
-| Documentation and presentation | README with setup, endpoints and roles in the group, working demo                                                                                                     | Personal reflection, clear explanation of technical choices, everyone answers questions about the code  |
+> In the video, the data is logged twice, and the teacher says React is "testing first". What really happens: in development, React's `StrictMode` (in `main.tsx`) runs every effect twice on purpose, to help you find bugs. It doesn't happen in production.
 
-## How to plan your project
+**Question:** In your own words: what is CORS, and why did the browser block the request? Why did the same request work fine in Postman?
 
-Plan backwards from 8 January: decide what must be finished, then split it into small features.
+**Question:** Why do we write `origin: "http://localhost:5173"` instead of allowing every origin? What would you have to change when the frontend is put online?
 
-**Use GitHub Issues as features**
+### Exercise 3: Show the data on the page
 
-1. Write your feature list first, for example "User can log in" or "User can create a booking".
-2. Create one GitHub Issue per feature. Each issue should be small enough to finish in 1–2 days.
-3. Put all issues on a GitHub Projects board with the columns To do, In progress and Done.
-4. Give every issue an owner and a label (backend, frontend, test, docker).
-5. Mark the core features as "must have". Do these first. Extra features come last.
-   **Suggested timeline**
+1. Make a type for one object from your API, so TypeScript knows what you get back:
 
-_Week 48 (23–29 November): plan and start_
+   ```ts
+   type Item = {
+     id: number;
+     name: string;
+   };
+   ```
 
-- [ ] Choose your idea and write a short description
-- [ ] Draw your data model (models and relations)
-- [ ] Create the repository, the project board and the issues
-- [ ] Set up the backend with Sequelize and the first model
-      _Week 49 (30 November–6 December): backend and Docker_
+2. Store the data in state. Give `useState` the type, otherwise TypeScript thinks the array is always empty (`never[]`):
 
-- [ ] CRUD endpoints with Zod validation
-- [ ] Dockerfile and Docker Compose with API and database
-- [ ] First Vitest and Supertest tests
-      _Week 50 (7–13 December): frontend and login_
+   ```tsx
+   const [items, setItems] = useState<Item[]>([]);
+   ```
 
-- [ ] React pages connected to the API with axios
-- [ ] Login with Firebase or Auth0 and protected routes
-      _Week 51 (14–20 December): tests and feature freeze_
+3. In `fetchItems`, call `setItems(response.data)` instead of `console.log`.
+4. Show the list with `.map()`:
 
-- [ ] All core requirements are done and tested
-- [ ] Playwright tests and GitHub Actions (stretch goals)
-- [ ] No new features after this week, only fixes
-      _Christmas break (21 December–3 January)_
+   ```tsx
+   <ul>
+     {items.map((item) => (
+       <li key={item.id}>{item.name}</li>
+     ))}
+   </ul>
+   ```
 
-- [ ] Optional: polish, deployment, extra features
+5. Show the data from at least **two** different `GET` endpoints on the page. For example: a list of all items, and the details of one item (`GET /items/:id`).
+6. Add a new row in your database (with Postman or Prisma Studio), refresh the client, and check that it shows up.
+7. Take a screenshot of the page.
 
-_Week 1 (4–8 January): finish and present_
+> In the video, the `key` is put on the `<ul>`, and the index from `.map()` is used as key. The `key` belongs on the element **inside** the map (here the `<li>`), and the `id` from the database is a better key than the index. You don't always need the index in `.map()`.
 
-- [ ] Test the whole app from a fresh `git clone` with `docker compose up`
-- [ ] Finish the README and the reflections
-- [ ] Prepare the presentation
-      Tip: have a short meeting at the start of every lesson. Each person says what they did, what they will do next, and if they are stuck.
+**Question:** Why does React need a `key` on every item in a list? Why is the database `id` a better key than the index, especially once you can delete items?
 
-## Submission and presentation
+**Question:** Explain in your own words what `useState` and `useEffect` do in this component. What would happen if you removed the empty array `[]` from `useEffect`?
 
-Share the link to your GitHub repository by **Friday 8 January 2027**. Then it's time to show what you built.
+---
 
-**Presentation (about 15 minutes per group)**
+## Medium
 
-- Live demo of the app, started with `docker compose up`
-- Show the data model and one or two parts of the code you are proud of
-- Run the tests and show that they pass
-- Every group member presents a part and answers questions about the code
-  **Before you present, check that:**
+### Exercise 4: Create with POST
 
-- [ ] The app starts from a fresh `git clone` by following the README
-- [ ] `npm test` passes
-- [ ] No `.env` file or secrets are in the repository
-- [ ] All core requirements are done
+1. Check that your API has a `POST` endpoint (for example `POST /items`) and that it uses `app.use(express.json())`. Without it, `req.body` is `undefined`.
+2. Add a form to the page with an input field and a button. Store what the user types in state:
+
+   ```tsx
+   const [name, setName] = useState("");
+   ```
+
+3. When the form is submitted, send the new item to the API:
+
+   ```tsx
+   const handleSubmit = async (event: React.FormEvent) => {
+     event.preventDefault();
+     const response = await axios.post("http://localhost:3000/items", { name });
+     setItems([...items, response.data]);
+     setName("");
+   };
+   ```
+
+4. Check that the new item shows up on the page **without** refreshing, and that it is still there after you refresh (so it was really saved in the database).
+5. Don't send empty items: disable the button, or stop in `handleSubmit`, when the input is empty.
+
+> **Hint:** if the new item shows up with no name, look at what your API returns from `POST`. The code above expects the API to send back the created item. If yours doesn't, change the API, or call `fetchItems()` again after posting.
+
+**Question:** What does `event.preventDefault()` do? Remove it and test. What happens, and why?
+
+**Question:** After posting, you can either add `response.data` to the state, or fetch the whole list again. What are the pros and cons of each way?
+
+### Exercise 5: Delete with DELETE
+
+1. Check that your API has a `DELETE` endpoint (for example `DELETE /items/:id`).
+2. Add a **Delete** button next to every item in the list.
+3. When it is clicked, send the request, and remove the item from the state:
+
+   ```tsx
+   const handleDelete = async (id: number) => {
+     await axios.delete(`http://localhost:3000/items/${id}`);
+     setItems(items.filter((item) => item.id !== id));
+   };
+   ```
+
+   ```tsx
+   <button onClick={() => handleDelete(item.id)}>Delete</button>
+   ```
+
+4. Ask the user before deleting, for example with `window.confirm("Are you sure?")`.
+5. Check in Prisma Studio or Postman that the row is really gone from the database.
+
+> Notice `onClick={() => handleDelete(item.id)}` and not `onClick={handleDelete(item.id)}`. The second one runs the function immediately when the page renders, and deletes everything.
+
+**Question:** Explain what `items.filter((item) => item.id !== id)` does, step by step. Why do we make a new array instead of removing the item from the old one?
+
+**Question:** What should happen on the page if the `DELETE` request fails, for example because the API is down? What does your code do right now?
+
+### Exercise 6: Update with PUT
+
+1. Check that your API has a `PUT` endpoint (for example `PUT /items/:id`).
+2. Add an **Edit** button next to every item. When it is clicked, the item's name turns into an input field with a **Save** and a **Cancel** button. You need state to remember which item is being edited:
+
+   ```tsx
+   const [editingId, setEditingId] = useState<number | null>(null);
+   const [editName, setEditName] = useState("");
+   ```
+
+3. When **Save** is clicked, send the new value to the API, and replace the old item in the state:
+
+   ```tsx
+   const handleSave = async (id: number) => {
+     const response = await axios.put(`http://localhost:3000/items/${id}`, {
+       name: editName,
+     });
+     setItems(items.map((item) => (item.id === id ? response.data : item)));
+     setEditingId(null);
+   };
+   ```
+
+4. **Cancel** closes the input without saving.
+5. Test the whole flow: create an item, edit it, refresh the page, delete it. Take a screenshot of an item in edit mode.
+
+**Question:** What's the difference between `PUT` and `PATCH`? Which one fits your endpoint best, and why?
+
+**Question:** Why does `handleSave` use `.map()` here, while `handleDelete` uses `.filter()`?
+
+---
+
+## Challenging (optional)
+
+These exercises are optional. Do them if you finished Easy and Medium and want to go further.
+
+### Exercise 7: Clean up your API calls
+
+Right now, `http://localhost:3000` is written in many places, and `App.tsx` is getting long.
+
+1. Create `client/.env` with the API address. Vite only gives your code variables that start with `VITE_`:
+
+   ```env
+   VITE_API_URL=http://localhost:3000
+   ```
+
+2. Add `client/.env.example` with the same name and no value, and check that `client/.env` is ignored by Git.
+3. Create `client/src/api/items.ts` with one function per request: `getItems`, `getItem`, `createItem`, `updateItem` and `deleteItem`. Use `import.meta.env.VITE_API_URL` as the base URL, for example with `axios.create({ baseURL: ... })`.
+4. Move the `Item` type to its own file, and use it in the API functions, for example `axios.get<Item[]>(...)`.
+5. Split the page into components, for example `ItemList`, `ItemRow` and `ItemForm`, and pass data and functions with props.
+6. Check that everything still works exactly like before.
+
+> Unlike the API's `.env`, everything in `VITE_` variables ends up in the JavaScript that the browser downloads. Anyone can read it. **Never** put secrets like tokens or passwords in the client's `.env`.
+
+**Question:** Why is it OK to put the API address in `VITE_API_URL`, but never a secret like your `SONAR_TOKEN` or database password?
+
+### Exercise 8: Loading and errors
+
+A real page doesn't just show nothing while it waits, or break silently when something goes wrong.
+
+1. Add a `loading` state. Show "Loading…" while the first `GET` is running.
+2. Add an `error` state. Wrap every request in `try/catch`, and show a friendly message on the page when it fails.
+3. Test it: stop your API and refresh the client. Then start the API, and try to create an item with an empty name (if your API validates input), or delete an id that doesn't exist.
+4. If your API sends back an error message (for example with status `400` or `404`), show **that** message on the page. With Axios, you find it in `error.response?.data`. Use `axios.isAxiosError(error)` to check the type.
+5. While a request is running, disable the buttons, so the user can't click **Save** or **Delete** twice.
+6. Take a screenshot of an error message on the page.
+
+**Question:** Your API already validates input. Why should the frontend check the input too? And why is checking only in the frontend never enough?
+
+### Exercise 9: Scan the frontend with SonarQube
+
+Last week you scanned your API. Now your project has a frontend too, and it deserves the same review.
+
+1. Start SonarQube with `docker compose up`.
+2. Add the client to what SonarQube scans, in `sonar-project.properties`. Change the folder names to fit your project:
+
+   ```properties
+   sonar.sources=src,client/src
+   sonar.exclusions=**/node_modules/**,dist/**,client/dist/**,coverage/**
+   ```
+
+3. Run `npm run sonar` from the root of your project and open the dashboard.
+4. Find at least **three** issues in the client code. Write a triage table in `ANSWERS.md`, like last week:
+
+   | Rule | File and line | Severity | Fix or not? | Why |
+   | ---- | ------------- | -------- | ----------- | --- |
+
+5. Fix at least two of them, and scan again. Take a screenshot of the dashboard before and after.
+
+> **Hint:** SonarQube knows many React rules, for example about keys in lists, unused state, and hooks used in the wrong place. If you used the index as key somewhere, it will probably tell you.
+
+**Question:** Did SonarQube find anything in your React code that you would not have noticed yourself? Did it miss anything that you know is a problem, like missing error handling?
+
+---
+
+## Additional reading
+
+### Watch and read first
+
+- [React + Vite frontend with an Express backend](https://www.youtube.com/watch?v=VSkWCl5DNLM): this week's video.
+- [Vite: Getting started](https://vite.dev/guide/): how to create a project and what `npm run dev` does.
+
+### Read for the exercises
+
+- [Axios: Getting started](https://axios-http.com/docs/intro): `get`, `post`, `put`, `delete`, and how to handle errors. Useful for Exercises 2 and 4–8.
+- [cors middleware for Express](https://expressjs.com/en/resources/middleware/cors.html): the `origin` option and other settings. Useful for Exercise 2.
+- [React: Rendering lists](https://react.dev/learn/rendering-lists): why lists need keys, and why the index is a risky key. Useful for Exercise 3.
+- [React: Updating arrays in state](https://react.dev/learn/updating-arrays-in-state): adding, removing and replacing items without changing the old array. Useful for Exercises 4–6.
+- [Vite: Env variables](https://vite.dev/guide/env-and-mode): how `VITE_` variables and `import.meta.env` work. Useful for Exercise 7.
+
+### Background
+
+- [MDN: Cross-Origin Resource Sharing (CORS)](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS): what the browser really does when it blocks a request, including "preflight" requests for `PUT` and `DELETE`.
+- [React: Synchronizing with Effects](https://react.dev/learn/synchronizing-with-effects): why effects run twice in development.
+
+---
+
+## What to hand in
+
+Push your `week12/frontend` branch with:
+
+- [ ] A `client` folder with a React + TypeScript project made with Vite, and **no** `node_modules` in the repository
+- [ ] `cors` set up in your API, allowing `http://localhost:5173`
+- [ ] A page that shows data from at least two `GET` endpoints
+- [ ] A form that creates new items with `POST`
+- [ ] A **Delete** button on every item that uses `DELETE`
+- [ ] An **Edit** mode on every item that saves with `PUT`
+- [ ] Optional: `client/.env.example` with `VITE_API_URL=`, an `api` folder and separate components
+- [ ] Optional: loading and error messages on the page
+- [ ] Optional: `sonar-project.properties` that also scans `client/src`
+- [ ] `ANSWERS.md` with every **Question:** answered (and the triage table, if you did Exercise 9)
+- [ ] A `screenshots/` folder with the screenshots from Exercises 2, 3 and 6 (and 8 and 9, if you did them)
+- [ ] A commit history with small, clear steps
+
+If you get stuck, write down what you tried and where it broke. An honest "I got stuck here" is worth more than a copied solution.
